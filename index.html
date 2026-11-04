@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robótica e IoT – DiHuBar Educations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f3f4f1;
+  --surface: #ffffff;
+  --ink: #1d2320;
+  --muted: #5d6762;
+  --line: #d7dcd8;
+  --accent: #1f6f8b;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", Arial, Helvetica, sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #111517; --surface: #1a2023; --ink: #e7ece9; --muted: #9aa6a1; --line: #2e373b; --accent: #5fb6d3; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); line-height: 1.5; }
+main { max-width: 900px; margin: 0 auto; padding: 40px 20px 60px; display: grid; gap: 24px; }
+.kicker { font-family: var(--font-mono); font-size: 13px; color: var(--accent); }
+h1 { font-family: var(--font-display); font-size: clamp(32px, 5vw, 48px); line-height: 1.05; margin: 6px 0 0; text-wrap: balance; }
+p { margin: 0; color: var(--muted); max-width: 65ch; }
+.clases { display: grid; gap: 12px; }
+a.clase {
+  display: grid; grid-template-columns: 56px 1fr; gap: 14px; align-items: center;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 16px; text-decoration: none; color: var(--ink);
+}
+a.clase:hover, a.clase:focus-visible { border-color: var(--accent); outline: none; }
+.num { font-family: var(--font-mono); font-size: 26px; color: var(--accent); text-align: center; }
+.t { font-family: var(--font-display); font-size: 22px; font-weight: 700; }
+.d { font-size: 15px; color: var(--muted); }
+.pendiente { opacity: .55; pointer-events: none; }
+footer { font-size: 14px; color: var(--muted); }
+footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">DIHUBAR EDUCATIONS · ROBÓTICA E IOT</div>
+    <h1>Simuladores para las clases de robótica</h1>
+    <p>Páginas interactivas para proyectar en clase. Usan los mismos valores que los programas del NodeMCU (ESP8266).</p>
+  </header>
+
+  <div class="clases">
+    <a class="clase" href="clases/01-red-propia-led-rgb/simuladores/">
+      <span class="num">01</span>
+      <span><span class="t">La placa que crea su propia red</span><br><span class="d">PWM con osciloscopio y multímetro, mezcla RGB, ánodo común, del celular al LED, resistencias.</span></span>
+    </a>
+    <div class="clase pendiente" style="display:grid;grid-template-columns:56px 1fr;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;">
+      <span class="num">02</span>
+      <span><span class="t">Próximamente</span></span>
+    </div>
+  </div>
+
+  <footer>Código, guías y fichas en el repositorio: <a href="https://github.com/dihubar-educations/robotica-iot">github.com/dihubar-educations/robotica-iot</a></footer>
+</main>
+</body>
+</html>
