@@ -6,6 +6,8 @@ Cada clase parte de un desafío concreto y termina con mediciones reales. Todo l
 
 **Simuladores en línea:** https://dihubar-educations.github.io/robotica-iot/
 
+**Primera vez con el ESP8266:** [tutorial para configurar el IDE y resolver el driver CH340](https://dihubar-educations.github.io/robotica-iot/clases/01-red-propia-led-rgb/simuladores/tutorial.html)
+
 ## Destinatarios
 
 El mismo montaje se trabaja en tres niveles de profundidad:

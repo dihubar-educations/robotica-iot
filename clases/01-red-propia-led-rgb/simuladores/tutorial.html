@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutorial: IDE de Arduino, ESP8266 y driver CH340</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Plan: mesa de laboratorio clara, con los instrumentos (osciloscopio, multímetro) como paneles oscuros.
+   Colores de canal como en un osciloscopio real: CH1 amarillo, promedio cian. Secciones apiladas para proyectar. */
+:root {
+  --bg: #f3f4f1;
+  --surface: #ffffff;
+  --ink: #1d2320;
+  --muted: #5d6762;
+  --line: #d7dcd8;
+  --accent: #1f6f8b;
+  --instrument: #14191b;
+  --instrument-line: #2b3438;
+  --trace: #f2c230;
+  --trace2: #4fd1e6;
+  --ok: #2e8b57;
+  --warn: #c98a12;
+  --bad: #c0392b;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", Arial, Helvetica, sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111517;
+    --surface: #1a2023;
+    --ink: #e7ece9;
+    --muted: #9aa6a1;
+    --line: #2e373b;
+    --accent: #5fb6d3;
+    --instrument: #0b0f10;
+    --instrument-line: #263034;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111517;
+  --surface: #1a2023;
+  --ink: #e7ece9;
+  --muted: #9aa6a1;
+  --line: #2e373b;
+  --accent: #5fb6d3;
+  --instrument: #0b0f10;
+  --instrument-line: #263034;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.5;
+}
+header.top {
+  padding: 28px 20px 12px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.kicker { font-family: var(--font-mono); font-size: 13px; color: var(--accent); letter-spacing: .04em; }
+h1, h2 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 4.5vw, 46px); line-height: 1.05; margin-top: 6px; }
+.lead { color: var(--muted); max-width: 68ch; margin: 10px 0 0; }
+nav.secciones {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+nav.secciones .fila {
+  max-width: 1100px; margin: 0 auto; padding: 10px 20px;
+  display: flex; gap: 8px; overflow-x: auto;
+}
+nav.secciones a {
+  white-space: nowrap; text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); background: var(--surface);
+  padding: 6px 12px; border-radius: 999px; font-size: 14px;
+}
+nav.secciones a:hover, nav.secciones a:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+main { max-width: 1100px; margin: 0 auto; padding: 8px 20px 60px; display: grid; gap: 28px; }
+section.bloque {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px;
+  display: grid;
+  gap: 16px;
+  scroll-margin-top: 70px;
+}
+.titulo { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+.num { font-family: var(--font-mono); color: var(--accent); font-size: 15px; }
+h2 { font-size: clamp(24px, 3vw, 32px); line-height: 1.1; }
+.pregunta { color: var(--muted); margin: 0; max-width: 70ch; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* Controles */
+.controles { display: grid; gap: 12px; }
+.control label { display: flex; justify-content: space-between; font-weight: 600; font-size: 15px; }
+.control output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: inherit; font-size: 14px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  padding: 6px 12px; border-radius: 999px;
+}
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.boton {
+  font: inherit; font-weight: 600; cursor: pointer;
+  border: none; border-radius: 10px; padding: 10px 16px;
+  background: var(--accent); color: #fff;
+}
+.boton.sec { background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+
+/* Instrumentos */
+.instrumento {
+  background: var(--instrument);
+  border: 1px solid var(--instrument-line);
+  border-radius: 12px;
+  padding: 12px;
+  color: #cfd8d4;
+}
+.instrumento .rotulo { font-family: var(--font-mono); font-size: 12px; color: #8a9893; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+canvas.osc { width: 100%; height: 260px; display: block; margin-top: 8px; border-radius: 6px; }
+.lecturas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+@media (max-width: 560px) { .lecturas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lectura { background: #0f1416; border: 1px solid var(--instrument-line); border-radius: 8px; padding: 8px; }
+.lectura .k { font-size: 11px; color: #8a9893; font-family: var(--font-mono); }
+.lectura .v { font-family: var(--font-mono); font-size: 20px; color: var(--trace); font-variant-numeric: tabular-nums; }
+.lectura.prom .v { color: var(--trace2); }
+
+.lateral { display: grid; gap: 14px; }
+.multimetro { text-align: center; }
+.multimetro .pantalla {
+  margin-top: 8px; background: #b9c4a6; color: #1c2414; border-radius: 8px;
+  font-family: var(--font-mono); font-size: 44px; font-weight: 600; padding: 8px 10px;
+  font-variant-numeric: tabular-nums; letter-spacing: .02em;
+}
+.multimetro .pantalla small { font-size: 20px; }
+.led-caja { display: grid; place-items: center; padding: 18px 0 8px; }
+.led {
+  width: 92px; height: 92px; border-radius: 50%;
+  background: #2a2f31; position: relative;
+  border: 3px solid #3a4245;
+}
+.led .luz { position: absolute; inset: 0; border-radius: 50%; }
+.nota { font-size: 14px; color: var(--muted); margin: 0; }
+.instrumento .nota { color: #8a9893; }
+.idea {
+  border-left: 4px solid var(--accent); background: var(--bg);
+  padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 0;
+}
+.formula { font-family: var(--font-mono); font-size: 15px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+
+/* RGB */
+.canales { display: grid; gap: 10px; }
+.canal { display: grid; grid-template-columns: 70px minmax(0, 1fr) 120px; gap: 10px; align-items: center; }
+@media (max-width: 560px) { .canal { grid-template-columns: 56px minmax(0, 1fr); } .canal canvas { grid-column: 1 / -1; } }
+.canal .nom { font-weight: 600; }
+.canal canvas { width: 100%; height: 44px; background: var(--instrument); border-radius: 6px; }
+
+/* Tablas */
+.tabla-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+th { font-size: 13px; color: var(--muted); font-weight: 600; }
+td.n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+th.n { text-align: right; }
+
+/* Ánodo / cátodo */
+.circuito { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pieza {
+  border: 1px solid var(--line); background: var(--bg); border-radius: 8px;
+  padding: 8px 10px; font-family: var(--font-mono); font-size: 14px; text-align: center; min-width: 74px;
+}
+.pieza small { display: block; color: var(--muted); font-family: var(--font-body); font-size: 11px; }
+.flecha { font-family: var(--font-mono); color: var(--accent); font-size: 20px; }
+.muestras { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.muestra { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.muestra .color { height: 90px; }
+.muestra .pie { padding: 6px 10px; font-size: 14px; display: flex; justify-content: space-between; gap: 8px; }
+.estado { font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: #fff; }
+.estado.ok { background: var(--ok); }
+.estado.mal { background: var(--bad); }
+.estado.atencion { background: var(--warn); }
+.interruptor { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.interruptor input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+/* Código */
+.codigo { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.codigo-barra { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; background: var(--bg); border-bottom: 1px solid var(--line); }
+pre.fuente { margin: 0; max-height: 420px; overflow: auto; background: var(--instrument); color: #d8e3de; padding: 14px; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.55; tab-size: 2; }
+.lead a, .nota a { color: var(--accent); }
+/* Calculadora */
+.barra { height: 18px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; position: relative; overflow: hidden; }
+.barra .relleno { position: absolute; inset: 0 auto 0 0; border-radius: 999px; }
+.barra .limite { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); }
+.resultado { font-family: var(--font-mono); font-size: 34px; font-variant-numeric: tabular-nums; }
+footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--muted); font-size: 14px; }
+
+ol.pasos { margin: 0; padding-left: 0; list-style: none; counter-reset: paso; display: grid; gap: 10px; }
+ol.pasos > li { counter-increment: paso; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 12px; align-items: start; }
+ol.pasos > li::before { content: counter(paso); font-family: var(--font-mono); font-weight: 600; color: #fff; background: var(--accent); border-radius: 50%; width: 30px; height: 30px; display: grid; place-items: center; font-size: 14px; }
+ol.pasos p { margin: 0; }
+.ruta { font-family: var(--font-mono); font-size: 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+.versiones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 640px) { .versiones { grid-template-columns: 1fr; } }
+.version { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; border-left-width: 5px; }
+.version.ok { border-left-color: var(--ok); }
+.version.mal { border-left-color: var(--bad); }
+.version .v { font-family: var(--font-mono); font-size: 18px; font-weight: 600; }
+.error-txt { font-family: var(--font-mono); font-size: 13px; background: var(--instrument); color: #f2a9a0; padding: 10px 12px; border-radius: 8px; overflow-x: auto; white-space: pre-wrap; margin: 0; }
+.fuentes a { color: var(--accent); }
+.fuentes li { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="kicker">ROBÓTICA · NODEMCU V3 (ESP8266) · PREPARACIÓN</div>
+  <h1>Configurar el IDE de Arduino para el ESP8266 y resolver el driver CH340</h1>
+  <p class="lead">Dos partes: primero se prepara el IDE para programar el NodeMCU; después, si la carga falla, se vuelve al driver CH340 de 2019. <a href="index.html">Volver a los simuladores</a>.</p>
+</header>
+
+<nav class="secciones" aria-label="Secciones">
+  <div class="fila">
+    <a href="#ide">1 · El IDE y el ESP8266</a>
+    <a href="#prueba">2 · Primer programa</a>
+    <a href="#driver">3 · Driver CH340</a>
+    <a href="#bloqueo">4 · Que no vuelva</a>
+    <a href="index.html">Simuladores</a>
+  </div>
+</nav>
+
+<main>
+
+<section class="bloque" id="ide">
+  <div class="titulo"><span class="num">01</span><h2>Agregar el ESP8266 al IDE de Arduino</h2></div>
+  <p class="pregunta">El IDE trae de fábrica las placas Arduino, pero no el ESP8266. Hay que indicarle de dónde bajar su soporte. Se hace una sola vez por computadora y, como baja unos 150 MB, conviene hacerlo antes de la clase.</p>
+  <ol class="pasos">
+    <li><p>Instalá el <strong>Arduino IDE 2.x</strong> desde arduino.cc y abrilo.</p></li>
+    <li><div><p>Entrá en <span class="ruta">Archivo → Preferencias</span>. En el campo <strong>URL adicionales del gestor de placas</strong> (<em>Additional boards manager URLs</em>) pegá esta dirección y aceptá:</p>
+      <div class="formula" style="margin-top:8px">http://arduino.esp8266.com/stable/package_esp8266com_index.json</div></div></li>
+    <li><p>Abrí <span class="ruta">Herramientas → Placa → Gestor de placas</span> (o el ícono de placa en la barra izquierda). Buscá <strong>esp8266</strong> e instalá <strong>esp8266 by ESP8266 Community</strong>. Los programas de este curso están verificados con la versión <strong>3.1.2</strong>.</p></li>
+    <li><p>Elegí la placa en <span class="ruta">Herramientas → Placa → esp8266 → NodeMCU 1.0 (ESP-12E Module)</span>.</p></li>
+    <li><p>Conectá el NodeMCU con un cable USB <strong>de datos</strong> y elegí el puerto en <span class="ruta">Herramientas → Puerto → COM…</span>. Si no aparece ningún puerto COM, pasá a la <a href="#driver">parte 3</a>.</p></li>
+    <li><p>En <span class="ruta">Herramientas → Upload Speed</span>, si la carga falla con 921600, bajala a <strong>115200</strong>: es más lenta pero más tolerante con cables y placas clonadas.</p></li>
+  </ol>
+</section>
+
+<section class="bloque" id="prueba">
+  <div class="titulo"><span class="num">02</span><h2>Primer programa: comprobar que todo funciona</h2></div>
+  <p class="pregunta">Este programa no necesita componentes: hace parpadear el LED azul de la placa y escribe en el Monitor serie. Cargalo con la flecha (→) y abrí <span class="ruta">Herramientas → Monitor serie</span> a <strong>115200 baudios</strong>.</p>
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Programa de prueba</strong> · <code>t0_parpadeo.ino</code><br><span class="nota">Si el LED parpadea y aparecen los mensajes, el IDE, el driver y la placa funcionan.</span></div>
+      <button class="boton sec copiar" type="button" data-objetivo="cod-t0">Copiar código</button>
+    </div>
+    <pre class="fuente" id="cod-t0"><code>/*
+  ==========================================================================
+  PRIMER PROGRAMA - Comprobar que el IDE y la placa funcionan
+  NodeMCU V3 (ESP8266) - Placa en el IDE: &quot;NodeMCU 1.0 (ESP-12E Module)&quot;
+  ==========================================================================
+
+  No necesita ningún componente: usa el LED azul que trae la placa
+  (LED_BUILTIN = D4 = GPIO2). Ese LED enciende con el pin en BAJO.
+
+  Si el LED parpadea y en el Monitor serie (115200 baudios) aparecen los
+  mensajes, el IDE, el driver y la placa están funcionando.
+  ==========================================================================
+*/
+
+uint32_t contador = 0;
+
+void setup() {
+  Serial.begin(115200);
+  delay(300);
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.println();
+  Serial.println(F(&quot;=== La placa funciona ===&quot;));
+  Serial.printf(&quot;Chip ID: %08X | Flash: %u KB | CPU: %u MHz\n&quot;,
+                ESP.getChipId(), ESP.getFlashChipRealSize() / 1024, ESP.getCpuFreqMHz());
+}
+
+void loop() {
+  digitalWrite(LED_BUILTIN, LOW);    // enciende (lógica invertida)
+  delay(500);
+  digitalWrite(LED_BUILTIN, HIGH);   // apaga
+  delay(500);
+  contador++;
+  Serial.printf(&quot;Parpadeo número %lu\n&quot;, (unsigned long)contador);
+}
+</code></pre>
+  </div>
+  <p class="idea"><strong>Si la carga falla:</strong> mantené apretado el botón <strong>FLASH</strong> de la placa en el momento en que el IDE dice <em>Connecting…</em>. Si sigue fallando con un error de puerto, es el driver: seguí con la parte 3.</p>
+</section>
+
+<section class="bloque" id="driver">
+  <div class="titulo"><span class="num">03</span><h2>El problema del driver CH340 y cómo volver al de 2019</h2></div>
+  <p class="pregunta">El NodeMCU V3 se comunica con la computadora por un chip CH340. Windows Update instala solo las versiones nuevas de su driver (de 2023 y 2024), que no funcionan con muchos chips CH340 clonados, muy comunes en placas económicas. El driver de 2019 sí funciona con esos chips.</p>
+
+  <div class="versiones">
+    <div class="version ok"><span class="v">3.5.2019.1</span><span>Funciona con los chips clonados. Es la versión a instalar. La 3.7.2022.1 también funciona.</span></div>
+    <div class="version mal"><span class="v">3.8.2023.2 · 3.9.2024.9</span><span>Fallan con los chips clonados: la placa aparece en un puerto COM, pero no se puede cargar ni abrir el Monitor serie.</span></div>
+  </div>
+
+  <h3 style="margin:6px 0 0;font-family:var(--font-display);font-size:22px">Cómo saber qué versión tenés</h3>
+  <ol class="pasos">
+    <li><p>Conectá el NodeMCU. Hacé clic derecho en el botón Inicio y abrí el <strong>Administrador de dispositivos</strong>.</p></li>
+    <li><p>Desplegá <strong>Puertos (COM y LPT)</strong> y hacé doble clic en <strong>USB-SERIAL CH340 (COMx)</strong>.</p></li>
+    <li><p>En la pestaña <strong>Controlador</strong>, mirá la <strong>Versión del controlador</strong>. Si dice 3.8.2023… o 3.9.2024…, seguí con la solución.</p></li>
+  </ol>
+
+  <h3 style="margin:6px 0 0;font-family:var(--font-display);font-size:22px">Errores típicos de este problema</h3>
+  <pre class="error-txt">A fatal esptool.py error occurred: Cannot configure port, something went wrong.
+Original message: PermissionError(13, 'Un dispositivo conectado al sistema no funciona.', None, 31)</pre>
+  <p class="nota">También aparece como “can’t set com-state” al cargar en un Arduino UNO o Nano con CH340, o como un Monitor serie que no abre.</p>
+
+  <h3 style="margin:6px 0 0;font-family:var(--font-display);font-size:22px">Solución: instalar el driver de 2019 y revertir</h3>
+  <ol class="pasos">
+    <li><p>Descargá <strong>CH341SER_WIN_3.5.ZIP</strong> del repositorio de WEMOS en GitHub: <a href="https://github.com/wemos/ch340_driver">github.com/wemos/ch340_driver</a>. Descomprimilo.</p></li>
+    <li><p><strong>Desconectá internet</strong> (WiFi apagado) durante todo el procedimiento, para que Windows Update no reinstale el driver nuevo mientras trabajás.</p></li>
+    <li><p>Ejecutá el instalador que trae el zip con clic derecho → <strong>Ejecutar como administrador</strong> y presioná <strong>INSTALL</strong>.</p></li>
+    <li><p>Volvé al Administrador de dispositivos → <strong>USB-SERIAL CH340 (COMx)</strong> → pestaña <strong>Controlador</strong> → <strong>Revertir al controlador anterior</strong>. Como motivo elegí <strong>Mis aplicaciones no funcionan con este controlador</strong> y presioná <strong>Sí</strong>.</p></li>
+    <li><p>Si el botón <em>Revertir</em> está gris: <strong>Actualizar controlador</strong> → <strong>Buscar controladores en mi equipo</strong> → <strong>Elegir en una lista de controladores disponibles en el equipo</strong> → elegí el de versión <strong>3.5.2019.1</strong> → <strong>Siguiente</strong>.</p></li>
+    <li><p>Comprobá en la pestaña <strong>Controlador</strong> que diga <strong>3.5.2019.1</strong>. Desconectá y volvé a conectar la placa, y probá cargar el <a href="#prueba">primer programa</a>.</p></li>
+    <li><p>Recién entonces volvé a conectar internet.</p></li>
+  </ol>
+</section>
+
+<section class="bloque" id="bloqueo">
+  <div class="titulo"><span class="num">04</span><h2>Que Windows no lo vuelva a actualizar</h2></div>
+  <p class="pregunta">Revertir con el botón le indica a Windows que elegiste la versión anterior a propósito, y normalmente no la vuelve a cambiar. Si en las netbooks del aula el problema reaparece después de una actualización, hay una opción más firme.</p>
+  <ol class="pasos">
+    <li><p>Abrí <span class="ruta">Panel de control → Sistema → Configuración avanzada del sistema</span>.</p></li>
+    <li><p>En la pestaña <strong>Hardware</strong>, presioná <strong>Configuración de instalación de dispositivos</strong>.</p></li>
+    <li><p>Elegí <strong>No (es posible que el dispositivo no funcione como se espera)</strong> y guardá.</p></li>
+  </ol>
+  <p class="idea"><strong>Tené en cuenta:</strong> esta opción frena las descargas automáticas de drivers para todos los dispositivos, no solo para el CH340. En netbooks de laboratorio suele convenir; en una computadora personal, alcanza con revertir.</p>
+  <p class="nota">Con chips CH340 originales el driver nuevo funciona bien: el problema es de los chips clonados. Para comprar placas nuevas, conviene elegir proveedores que usen chips originales.</p>
+</section>
+
+<section class="bloque fuentes">
+  <div class="titulo"><h2>Fuentes</h2></div>
+  <ul>
+    <li><a href="https://github.com/wemos/ch340_driver">WEMOS: drivers CH340 para Windows y Mac (incluye la versión 3.5)</a></li>
+    <li><a href="https://github.com/SHWotever/FakeCH340DriverFixer">FakeCH340DriverFixer: versiones del driver que fallan con chips clonados (3.8.2023.02 y 3.9.2024.09)</a></li>
+    <li><a href="https://forum.arduino.cc/t/serial-serialutil-serialexception-cannot-configure-port-something-went-wrong-original-message-permissionerror-13-a-device-attached-to-the-system/1123035">Foro de Arduino: error “Cannot configure port” con NodeMCU V3 y CH340</a></li>
+    <li><a href="https://forum.arduino.cc/t/uploading-to-esp8266-a-device-attached-to-the-system-is-not-functioning/1334635">Foro de Arduino: procedimiento para revertir el driver en Windows</a></li>
+    <li><a href="https://forum.arduino.cc/t/ch340-drivers-on-windows/1405246">Foro de Arduino: evitar que Windows reinstale el driver nuevo</a></li>
+  </ul>
+</section>
+
+</main>
+<footer>Probado con Arduino IDE 2.x, núcleo esp8266 3.1.2 y NodeMCU V3 con CH340.</footer>
+
+<script>
+(function () {
+  "use strict";
+  function q(id) { return document.getElementById(id); }
+  document.querySelectorAll(".copiar").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var texto = q(btn.dataset.objetivo).textContent;
+      function listo(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = "Copiar código"; }, 1800); }
+      function seleccionar() {
+        var r = document.createRange(); r.selectNodeContents(q(btn.dataset.objetivo));
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        listo("Seleccionado: Ctrl+C");
+      }
+      try { navigator.clipboard.writeText(texto).then(function () { listo("Copiado"); }, seleccionar); }
+      catch (e) { seleccionar(); }
+    });
+  });
+})();
+</script>
+</body>
+</html>

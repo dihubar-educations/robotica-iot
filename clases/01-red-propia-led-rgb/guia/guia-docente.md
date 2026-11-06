@@ -116,7 +116,7 @@ El montaje y la página son los mismos para los tres grupos; cambia cuánto del 
 | Grupo | Código | Medición | Desafío extra |
 | --- | --- | --- | --- |
 | Club de Robótica (2.º y 3.º año, ProA) | Se entrega completo; cambian solo `GRUPO` y `ANODO_COMUN` | Multímetro; osciloscopio guiado por el docente | Agregar un botón con un color propio en la página, copiando uno de los existentes |
-| Proyecto Integrador y Digitales IV (7.º año, IPET 51) | Se entrega con `valorParaPin()` vacía: la escriben ellos | Ciclo de trabajo y frecuencia en el osciloscopio; corriente del LED a partir de la caída en la resistencia | Cambiar `PWM_FRECUENCIA` a 50 Hz y a 10 kHz: ¿cuándo se ve el parpadeo? |
+| Proyecto Integrador y Digitales IV (7.º año, IPET 51) | Se entrega con `valorParaPin()` vacía: la escriben ellos | Ciclo de trabajo y frecuencia en el osciloscopio; corriente del LED a partir de la caída en la resistencia | Cambiar `PWM_FRECUENCIA` a 100 Hz (el mínimo de analogWrite en el ESP8266) y a 10 kHz. Para ver el parpadeo a 1 o 5 Hz, usar el programa del simulador 1, que hace el PWM a mano |
 | Automatización (3.º año, UPC) | Completo; analizan la arquitectura cliente-servidor y la respuesta JSON de `/estado` | Igual que IPET, más el tiempo de respuesta entre el celular y el LED | Sumar una salida ON/OFF con el módulo de 2 relés. Muchos módulos se activan en bajo: es la misma inversión del ánodo común. Verificar antes que el módulo responda a 3,3 V |
 
 ## Problemas frecuentes

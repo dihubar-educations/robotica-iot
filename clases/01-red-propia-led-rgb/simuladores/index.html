@@ -200,27 +200,17 @@ th.n { text-align: right; }
 .interruptor { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 .interruptor input { width: 20px; height: 20px; accent-color: var(--accent); }
 
-/* Recorrido */
-.recorrido { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
-@media (max-width: 900px) { .recorrido { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 520px) { .recorrido { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-.paso {
-  border: 1px solid var(--line); border-radius: 10px; padding: 10px; background: var(--bg);
-  display: grid; gap: 4px; align-content: start; transition: border-color .2s, background .2s;
-}
-.paso .n { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
-.paso .t { font-weight: 600; font-size: 15px; }
-.paso .d { font-size: 13px; color: var(--muted); }
-.paso.activo { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
-.paso.hecho { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
-pre.mensaje {
-  margin: 0; background: var(--instrument); color: #d8e3de; border-radius: 10px;
-  padding: 12px; font-family: var(--font-mono); font-size: 14px; overflow-x: auto; white-space: pre;
-  min-height: 92px;
-}
-pre.mensaje .c { color: var(--trace); }
-pre.mensaje .r { color: var(--trace2); }
-
+/* Esquemas */
+.esquema { border: 1px solid var(--line); border-radius: 12px; background: #fafaf7; color: #1d2320; overflow: hidden; }
+.esquema-titulo { padding: 10px 14px; font-weight: 600; border-bottom: 1px solid #e3e2dc; background: #f1f0ea; }
+.esquema-dibujo { overflow-x: auto; padding: 6px; }
+.esquema-dibujo svg { display: block; width: 100%; min-width: 620px; height: auto; }
+.esquema-leyenda { margin: 0; padding: 10px 14px 12px 32px; font-size: 14px; display: grid; gap: 2px; border-top: 1px solid #e3e2dc; }
+/* Código */
+.codigo { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.codigo-barra { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; background: var(--bg); border-bottom: 1px solid var(--line); }
+pre.fuente { margin: 0; max-height: 420px; overflow: auto; background: var(--instrument); color: #d8e3de; padding: 14px; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.55; tab-size: 2; }
+.lead a, .nota a { color: var(--accent); }
 /* Calculadora */
 .barra { height: 18px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; position: relative; overflow: hidden; }
 .barra .relleno { position: absolute; inset: 0 auto 0 0; border-radius: 999px; }
@@ -235,6 +225,7 @@ footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--m
   <div class="kicker">ROBÓTICA · NODEMCU V3 (ESP8266) · CLASE 1</div>
   <h1>La placa que crea su propia red</h1>
   <p class="lead">Simuladores para proyectar en clase. Cada uno corresponde a un momento de la clase y usa los mismos valores que el programa <code>clase01_led_wifi.ino</code>: PWM de 0 a 255, 1 kHz y 3,3 V.</p>
+  <p class="lead">Cada simulador trae su programa para el IDE de Arduino. ¿Primera vez con el ESP8266? <a href="tutorial.html">Tutorial: configurar el IDE y resolver el problema del driver CH340</a>.</p>
 </header>
 
 <nav class="secciones" aria-label="Secciones">
@@ -242,8 +233,8 @@ footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--m
     <a href="#pwm">1 · Medio rojo</a>
     <a href="#rgb">2 · Mezcla de colores</a>
     <a href="#anodo">3 · Ánodo común</a>
-    <a href="#recorrido">4 · Del celular al LED</a>
-    <a href="#resistencia">5 · Resistencias</a>
+    <a href="#resistencia">4 · Resistencias</a>
+    <a href="tutorial.html">Tutorial: IDE y driver</a>
   </div>
 </nav>
 
@@ -295,6 +286,181 @@ footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--m
 
   <div class="formula">Ciclo de trabajo = valor / 255 &nbsp;·&nbsp; Tiempo en alto = ciclo × período &nbsp;·&nbsp; Tensión promedio = ciclo × 3,3 V</div>
   <p class="idea"><strong>Para discutir:</strong> a 1 Hz el LED parpadea y el multímetro no se queda quieto. A 1 kHz el ojo y el multímetro “promedian” y ven un valor intermedio. ¿Desde qué frecuencia deja de notarse el parpadeo?</p>
+  <p class="nota">En la placa real, <code>analogWrite()</code> trabaja de 100 Hz a 60 kHz. Para probar 1, 5 y 50 Hz, el programa de abajo genera el PWM a mano.</p>
+
+  <div class="esquema">
+    <div class="esquema-titulo">Esquema de conexionado</div>
+    <div class="esquema-dibujo" id="esq-pwm"></div>
+    <ul class="esquema-leyenda"><li><b style="color:#e8891a">D5</b> → resistencia de 150 Ω (marrón, verde, marrón) → pata R del LED</li><li>Pata común (−) → riel − → <b>GND</b></li><li>Potenciómetro (opcional): extremos a <b style="color:#d62828">3V3</b> y <b>GND</b>, cursor a <b style="color:#8e44ad">A0</b></li><li>Las patas G y B quedan sin conectar</li></ul>
+  </div>
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Programa para el IDE de Arduino</strong> · <code>s1_pwm_frecuencia.ino</code><br><span class="nota">Valor y frecuencia desde el Monitor serie (o con un potenciómetro en A0). Por debajo de 100 Hz hace el PWM a mano, porque <code>analogWrite()</code> del ESP8266 no baja de 100 Hz.</span></div>
+      <button class="boton sec copiar" type="button" data-objetivo="cod-1">Copiar código</button>
+    </div>
+    <pre class="fuente" id="cod-1"><code>/*
+  ==========================================================================
+  SIMULADOR 1 - ¿Cómo hace un pin para dar &quot;medio rojo&quot;?
+  PWM por hardware (analogWrite) y PWM hecho a mano para frecuencias bajas
+  NodeMCU V3 (ESP8266) - Placa en el IDE: &quot;NodeMCU 1.0 (ESP-12E Module)&quot;
+  ==========================================================================
+
+  CONEXIONADO
+    D5 (GPIO14) -&gt; resistencia de 150 ohm -&gt; pata R del LED -&gt; GND (cátodo común)
+    Potenciómetro (opcional): extremos a 3V3 y GND, cursor a A0
+
+  CÓMO SE USA (Monitor serie a 115200 baudios, &quot;Nueva línea&quot;)
+    v128   -&gt; valor en el pin (0 a 255)
+    f5     -&gt; frecuencia en Hz (1 a 40000)
+    p      -&gt; activa/desactiva el potenciómetro en A0 para fijar el valor
+    ?      -&gt; muestra la ayuda
+
+  POR QUÉ HAY DOS FORMAS DE HACER PWM
+    analogWrite() en el ESP8266 acepta de 100 Hz a 60 kHz. Por debajo de
+    100 Hz el programa hace el PWM &quot;a mano&quot;: mira el reloj (micros) y prende
+    o apaga el pin. Así se puede ver el parpadeo a 1 Hz o 5 Hz.
+  ==========================================================================
+*/
+
+const uint8_t  PIN_LED   = D5;
+const float    VCC       = 3.3;
+const uint32_t FREC_MIN_HARDWARE = 100;   // límite inferior de analogWriteFreq()
+
+uint8_t  valor      = 128;     // 0 a 255
+uint32_t frecuencia = 1000;    // Hz
+bool     usarPot    = false;
+bool     pwmPorSoftware = false;
+uint32_t inicioCiclo = 0;
+uint32_t ultimaLecturaPot = 0;
+uint32_t ultimoInforme = 0;
+
+void informar() {
+  float ciclo    = valor / 255.0;
+  float periodo  = 1000000.0 / frecuencia;   // microsegundos
+  float enAlto   = ciclo * periodo;
+  float promedio = ciclo * VCC;
+
+  Serial.println(F(&quot;------------------------------------------------&quot;));
+  Serial.printf(&quot;Valor en el pin : %u / 255\n&quot;, valor);
+  Serial.printf(&quot;Frecuencia      : %lu Hz (%s)\n&quot;, (unsigned long)frecuencia,
+                pwmPorSoftware ? &quot;PWM hecho a mano&quot; : &quot;analogWrite por hardware&quot;);
+  Serial.printf(&quot;Ciclo de trabajo: %.1f %%\n&quot;, ciclo * 100.0);
+  if (periodo &gt;= 1000.0) {
+    Serial.printf(&quot;Período         : %.1f ms\n&quot;, periodo / 1000.0);
+    Serial.printf(&quot;Tiempo en alto  : %.1f ms\n&quot;, enAlto / 1000.0);
+  } else {
+    Serial.printf(&quot;Período         : %.0f us\n&quot;, periodo);
+    Serial.printf(&quot;Tiempo en alto  : %.0f us\n&quot;, enAlto);
+  }
+  Serial.printf(&quot;Tensión promedio: %.2f V  (medila con el multímetro)\n&quot;, promedio);
+}
+
+void aplicar() {
+  pwmPorSoftware = (frecuencia &lt; FREC_MIN_HARDWARE);
+
+  if (pwmPorSoftware) {
+    analogWrite(PIN_LED, 0);        // detiene el PWM por hardware
+    pinMode(PIN_LED, OUTPUT);
+    inicioCiclo = micros();
+  } else {
+    analogWriteFreq(frecuencia);
+    analogWrite(PIN_LED, valor);
+  }
+}
+
+// PWM hecho a mano: dentro de cada período, el pin está en alto
+// mientras el tiempo transcurrido sea menor que el tiempo en alto.
+void pwmSoftware() {
+  uint32_t periodo = 1000000UL / frecuencia;
+  uint32_t enAlto  = (uint32_t)((uint64_t)periodo * valor / 255);
+  uint32_t t       = (micros() - inicioCiclo) % periodo;
+  digitalWrite(PIN_LED, (t &lt; enAlto) ? HIGH : LOW);
+}
+
+void mostrarAyuda() {
+  Serial.println();
+  Serial.println(F(&quot;Comandos: v0..v255 (valor), f1..f40000 (Hz), p (potenciómetro), ? (ayuda)&quot;));
+  Serial.println(F(&quot;Probá: f1, después f5, f50, f1000. ¿Desde cuándo deja de verse el parpadeo?&quot;));
+}
+
+void leerComando() {
+  if (!Serial.available()) return;
+  String linea = Serial.readStringUntil(&#x27;\n&#x27;);
+  linea.trim();
+  if (linea.length() == 0) return;
+
+  char comando = linea.charAt(0);
+  long numero  = linea.substring(1).toInt();
+
+  switch (comando) {
+    case &#x27;v&#x27;:
+    case &#x27;V&#x27;:
+      if (numero &lt; 0)   numero = 0;
+      if (numero &gt; 255) numero = 255;
+      valor = (uint8_t)numero;
+      usarPot = false;
+      aplicar();
+      informar();
+      break;
+
+    case &#x27;f&#x27;:
+    case &#x27;F&#x27;:
+      if (numero &lt; 1)     numero = 1;
+      if (numero &gt; 40000) numero = 40000;
+      frecuencia = (uint32_t)numero;
+      aplicar();
+      informar();
+      break;
+
+    case &#x27;p&#x27;:
+    case &#x27;P&#x27;:
+      usarPot = !usarPot;
+      Serial.printf(&quot;Potenciómetro %s\n&quot;, usarPot ? &quot;ACTIVADO (A0)&quot; : &quot;desactivado&quot;);
+      break;
+
+    default:
+      mostrarAyuda();
+      break;
+  }
+}
+
+void leerPotenciometro() {
+  if (!usarPot || millis() - ultimaLecturaPot &lt; 50) return;
+  ultimaLecturaPot = millis();
+
+  uint8_t nuevo = (uint8_t)(analogRead(A0) &gt;&gt; 2);   // 0..1023 -&gt; 0..255
+  if (abs((int)nuevo - (int)valor) &gt;= 2) {
+    valor = nuevo;
+    if (!pwmPorSoftware) analogWrite(PIN_LED, valor);
+    if (millis() - ultimoInforme &gt; 400) {            // no saturar el monitor
+      ultimoInforme = millis();
+      informar();
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(300);
+  Serial.println();
+  Serial.println(F(&quot;=== Simulador 1: PWM y tensión promedio ===&quot;));
+
+  analogWriteRange(255);
+  pinMode(PIN_LED, OUTPUT);
+  aplicar();
+  informar();
+  mostrarAyuda();
+}
+
+void loop() {
+  leerComando();
+  leerPotenciometro();
+  if (pwmPorSoftware) {
+    pwmSoftware();
+  }
+}
+</code></pre>
+  </div>
 </section>
 
 <!-- ============================ 2. RGB ============================ -->
@@ -344,6 +510,164 @@ footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--m
     </div>
   </div>
   <p class="idea"><strong>Desafío:</strong> antes de mover los deslizadores, que cada grupo prediga los tres valores para lograr amarillo, cian y naranja. Después lo comprueban.</p>
+
+  <div class="esquema">
+    <div class="esquema-titulo">Esquema de conexionado</div>
+    <div class="esquema-dibujo" id="esq-rgb"></div>
+    <ul class="esquema-leyenda"><li><b style="color:#e8891a">D5</b> → 150 Ω → pata R</li><li><b style="color:#2f9e44">D6</b> → 100 Ω (marrón, negro, marrón) → pata G</li><li><b style="color:#2b6fd6">D7</b> → 100 Ω → pata B</li><li>Pata común (−) → riel − → <b>GND</b></li></ul>
+  </div>
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Programa para el IDE de Arduino</strong> · <code>s2_mezcla_rgb.ino</code><br><span class="nota">Colores por el Monitor serie como <code>255,140,0</code> o <code>#FF8C00</code>, y un arcoíris automático con <code>a</code>.</span></div>
+      <button class="boton sec copiar" type="button" data-objetivo="cod-2">Copiar código</button>
+    </div>
+    <pre class="fuente" id="cod-2"><code>/*
+  ==========================================================================
+  SIMULADOR 2 - Mezcla de colores: tres PWM a la vez
+  NodeMCU V3 (ESP8266) - Placa en el IDE: &quot;NodeMCU 1.0 (ESP-12E Module)&quot;
+  ==========================================================================
+
+  CONEXIONADO (LED RGB de cátodo común)
+    D5 (GPIO14) -&gt; 150 ohm      -&gt; pata R
+    D6 (GPIO12) -&gt; 47 a 100 ohm -&gt; pata G
+    D7 (GPIO13) -&gt; 47 a 100 ohm -&gt; pata B
+    Pata común  -&gt; GND
+
+  CÓMO SE USA (Monitor serie a 115200 baudios, &quot;Nueva línea&quot;)
+    255,140,0  -&gt; fija rojo, verde y azul (0 a 255 cada uno)
+    #FF8C00    -&gt; el mismo color en hexadecimal, como en la web
+    a          -&gt; arcoíris automático (se detiene con cualquier color)
+    ?          -&gt; ayuda
+
+  DESAFÍO: antes de escribir, predecí los valores para amarillo, cian y
+  naranja. Después comprobalo.
+  ==========================================================================
+*/
+
+const uint8_t PIN_R = D5;
+const uint8_t PIN_G = D6;
+const uint8_t PIN_B = D7;
+const float   VCC   = 3.3;
+
+uint8_t r = 255, g = 140, b = 0;
+bool    arcoiris = false;
+uint16_t tono = 0;                 // 0 a 359 grados
+uint32_t ultimoPaso = 0;
+
+void escribirLED() {
+  analogWrite(PIN_R, r);
+  analogWrite(PIN_G, g);
+  analogWrite(PIN_B, b);
+}
+
+void filaTabla(const char* nombre, uint8_t v) {
+  float ciclo = v / 255.0;
+  Serial.printf(&quot;  %-6s %3u   %5.1f %%   %4.2f V\n&quot;, nombre, v, ciclo * 100.0, ciclo * VCC);
+}
+
+void informar() {
+  Serial.println(F(&quot;------------------------------------------------&quot;));
+  Serial.printf(&quot;Color #%02X%02X%02X\n&quot;, r, g, b);
+  Serial.println(F(&quot;  Canal  Valor  Ciclo     Tensión prom.&quot;));
+  filaTabla(&quot;Rojo&quot;,  r);
+  filaTabla(&quot;Verde&quot;, g);
+  filaTabla(&quot;Azul&quot;,  b);
+}
+
+// Convierte un tono (0-359) con saturación y brillo máximos a RGB 0-255
+void tonoARgb(uint16_t h, uint8_t &amp;rr, uint8_t &amp;gg, uint8_t &amp;bb) {
+  uint8_t sector = h / 60;              // 0 a 5
+  uint8_t sube   = (uint8_t)((h % 60) * 255 / 60);
+  uint8_t baja   = 255 - sube;
+  switch (sector) {
+    case 0:  rr = 255;  gg = sube; bb = 0;    break;
+    case 1:  rr = baja; gg = 255;  bb = 0;    break;
+    case 2:  rr = 0;    gg = 255;  bb = sube; break;
+    case 3:  rr = 0;    gg = baja; bb = 255;  break;
+    case 4:  rr = sube; gg = 0;    bb = 255;  break;
+    default: rr = 255;  gg = 0;    bb = baja; break;
+  }
+}
+
+uint8_t limitar(long v) {
+  if (v &lt; 0)   return 0;
+  if (v &gt; 255) return 255;
+  return (uint8_t)v;
+}
+
+void mostrarAyuda() {
+  Serial.println();
+  Serial.println(F(&quot;Escribí: 255,140,0  o  #FF8C00  |  a = arcoíris  |  ? = ayuda&quot;));
+}
+
+void leerComando() {
+  if (!Serial.available()) return;
+  String linea = Serial.readStringUntil(&#x27;\n&#x27;);
+  linea.trim();
+  if (linea.length() == 0) return;
+
+  if (linea == &quot;a&quot; || linea == &quot;A&quot;) {
+    arcoiris = true;
+    Serial.println(F(&quot;Arcoíris activado. Escribí un color para detenerlo.&quot;));
+    return;
+  }
+
+  if (linea.charAt(0) == &#x27;#&#x27; &amp;&amp; linea.length() == 7) {
+    long valorHex = strtol(linea.substring(1).c_str(), nullptr, 16);
+    r = (valorHex &gt;&gt; 16) &amp; 0xFF;
+    g = (valorHex &gt;&gt; 8) &amp; 0xFF;
+    b = valorHex &amp; 0xFF;
+    arcoiris = false;
+    escribirLED();
+    informar();
+    return;
+  }
+
+  int coma1 = linea.indexOf(&#x27;,&#x27;);
+  int coma2 = linea.indexOf(&#x27;,&#x27;, coma1 + 1);
+  if (coma1 &gt; 0 &amp;&amp; coma2 &gt; coma1) {
+    r = limitar(linea.substring(0, coma1).toInt());
+    g = limitar(linea.substring(coma1 + 1, coma2).toInt());
+    b = limitar(linea.substring(coma2 + 1).toInt());
+    arcoiris = false;
+    escribirLED();
+    informar();
+    return;
+  }
+
+  mostrarAyuda();
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(300);
+  Serial.println();
+  Serial.println(F(&quot;=== Simulador 2: mezcla de colores RGB ===&quot;));
+
+  analogWriteRange(255);
+  analogWriteFreq(1000);
+  pinMode(PIN_R, OUTPUT);
+  pinMode(PIN_G, OUTPUT);
+  pinMode(PIN_B, OUTPUT);
+
+  escribirLED();
+  informar();
+  mostrarAyuda();
+}
+
+void loop() {
+  leerComando();
+
+  if (arcoiris &amp;&amp; millis() - ultimoPaso &gt;= 20) {
+    ultimoPaso = millis();
+    tono = (tono + 1) % 360;
+    tonoARgb(tono, r, g, b);
+    escribirLED();
+    if (tono % 60 == 0) informar();      // informa en cada color &quot;puro&quot;
+  }
+}
+</code></pre>
+  </div>
 </section>
 
 <!-- ============================ 3. ÁNODO ============================ -->
@@ -391,41 +715,125 @@ footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--m
     </div>
   </div>
   <div class="formula">Con ánodo común el LED enciende cuando el pin está en BAJO → valor en el pin = 255 − valor pedido</div>
-</section>
 
-<!-- ============================ 4. RECORRIDO ============================ -->
-<section class="bloque" id="recorrido">
-  <div class="titulo"><span class="num">04</span><h2>Del celular al LED, sin internet</h2></div>
-  <p class="pregunta">Cuando tocás un color, el celular le hace un pedido a la placa por su propia red WiFi. Elegí un color y seguí el recorrido.</p>
-
-  <div class="chips" id="rec-colores">
-    <button class="boton" data-c="255,0,0">Enviar rojo</button>
-    <button class="boton" data-c="0,128,255">Enviar celeste</button>
-    <button class="boton" data-c="255,140,0">Enviar naranja</button>
-    <button class="boton sec" id="rec-paso">Paso a paso</button>
+  <div class="esquema">
+    <div class="esquema-titulo">Esquema de conexionado</div>
+    <div class="esquema-dibujo" id="esq-anodo"></div>
+    <ul class="esquema-leyenda"><li><b style="color:#e8891a">D5</b> → 150 Ω → pata R · <b style="color:#2f9e44">D6</b> → 100 Ω → pata G · <b style="color:#2b6fd6">D7</b> → 100 Ω → pata B</li><li id="esq-anodo-comun">Pata común (−) → riel − → <b>GND</b></li><li>El esquema cambia cuando elegís el tipo de LED arriba.</li></ul>
   </div>
-
-  <div class="recorrido" id="pasos">
-    <div class="paso"><span class="n">1 · CELULAR</span><span class="t">El navegador arma el pedido</span><span class="d">Mueve un deslizador y la página genera la dirección con los tres valores.</span></div>
-    <div class="paso"><span class="n">2 · WIFI</span><span class="t">Red ROBOTICA-G1</span><span class="d">La creó la placa. No pasa por ningún router ni por internet.</span></div>
-    <div class="paso"><span class="n">3 · NODEMCU</span><span class="t">Servidor web en 192.168.4.1</span><span class="d">Recibe el pedido y lee r, g y b.</span></div>
-    <div class="paso"><span class="n">4 · PROGRAMA</span><span class="t">analogWrite()</span><span class="d">Convierte cada valor en un PWM de 1 kHz en D5, D6 y D7.</span></div>
-    <div class="paso"><span class="n">5 · LED</span><span class="t">Cambia de color</span><span class="d">Cada color recibe su ciclo de trabajo.</span></div>
-    <div class="paso"><span class="n">6 · RESPUESTA</span><span class="t">La placa contesta</span><span class="d">Devuelve el estado en JSON y la página actualiza su tabla.</span></div>
-  </div>
-
-  <div class="grid2">
-    <pre class="mensaje" id="rec-msg" aria-live="polite"></pre>
-    <div class="instrumento">
-      <div class="rotulo"><span>LED DE LA PLACA</span><span id="rec-led-txt">esperando</span></div>
-      <div class="led-caja"><div class="led"><div class="luz" id="rec-led"></div></div></div>
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Programa para el IDE de Arduino</strong> · <code>s3_anodo_comun.ino</code><br><span class="nota">Recorre una secuencia de colores y muestra el valor pedido y el valor en el pin. Se corrige cambiando <code>ANODO_COMUN</code>.</span></div>
+      <button class="boton sec copiar" type="button" data-objetivo="cod-3">Copiar código</button>
     </div>
+    <pre class="fuente" id="cod-3"><code>/*
+  ==========================================================================
+  SIMULADOR 3 - El desafío del ánodo común
+  NodeMCU V3 (ESP8266) - Placa en el IDE: &quot;NodeMCU 1.0 (ESP-12E Module)&quot;
+  ==========================================================================
+
+  CONEXIONADO
+    D5 (GPIO14) -&gt; 150 ohm      -&gt; pata R
+    D6 (GPIO12) -&gt; 47 a 100 ohm -&gt; pata G
+    D7 (GPIO13) -&gt; 47 a 100 ohm -&gt; pata B
+    Pata común:
+      - Cátodo común -&gt; GND
+      - Ánodo común  -&gt; 3V3  (¡NUNCA a VIN ni a 5 V!)
+
+  QUÉ HACE
+    Recorre una secuencia de colores cada 2 segundos y muestra en el
+    Monitor serie (115200) el valor pedido y el valor que va al pin.
+
+  EL DESAFÍO
+    1. Cargalo con ANODO_COMUN = false y un LED de cátodo común: todo bien.
+    2. Cambiá el LED por uno de ánodo común SIN tocar el código.
+       ¿Qué ves cuando la secuencia pide &quot;Apagado&quot;? ¿Y &quot;Rojo&quot;?
+    3. Corregí el código: ANODO_COMUN = true. ¿Qué cambió en la tabla?
+  ==========================================================================
+*/
+
+const bool ANODO_COMUN = false;   // false = cátodo común | true = ánodo común
+
+const uint8_t PIN_R = D5;
+const uint8_t PIN_G = D6;
+const uint8_t PIN_B = D7;
+
+struct Color {
+  const char* nombre;
+  uint8_t r, g, b;
+};
+
+const Color SECUENCIA[] = {
+  {&quot;Rojo&quot;,          255,   0,   0},
+  {&quot;Verde&quot;,           0, 255,   0},
+  {&quot;Azul&quot;,            0,   0, 255},
+  {&quot;Amarillo&quot;,      255, 255,   0},
+  {&quot;Violeta tenue&quot;,  64,   0, 128},
+  {&quot;Blanco&quot;,        255, 255, 255},
+  {&quot;Apagado&quot;,         0,   0,   0},
+};
+const uint8_t CANTIDAD = sizeof(SECUENCIA) / sizeof(SECUENCIA[0]);
+
+uint8_t indice = 0;
+uint32_t ultimoCambio = 0;
+
+// Cátodo común: el LED enciende con el pin en ALTO  -&gt; se escribe igual.
+// Ánodo común:  el LED enciende con el pin en BAJO  -&gt; hay que invertir.
+uint8_t valorParaPin(uint8_t pedido) {
+  if (ANODO_COMUN) {
+    return 255 - pedido;
+  }
+  return pedido;
+}
+
+void mostrarColor(const Color &amp;c) {
+  uint8_t pr = valorParaPin(c.r);
+  uint8_t pg = valorParaPin(c.g);
+  uint8_t pb = valorParaPin(c.b);
+
+  analogWrite(PIN_R, pr);
+  analogWrite(PIN_G, pg);
+  analogWrite(PIN_B, pb);
+
+  Serial.println(F(&quot;------------------------------------------------&quot;));
+  Serial.printf(&quot;Color pedido: %s   (código para LED de %s común)\n&quot;,
+                c.nombre, ANODO_COMUN ? &quot;ÁNODO&quot; : &quot;CÁTODO&quot;);
+  Serial.println(F(&quot;  Canal  Pedido  Valor en el pin&quot;));
+  Serial.printf(&quot;  Rojo    %3u       %3u\n&quot;, c.r, pr);
+  Serial.printf(&quot;  Verde   %3u       %3u\n&quot;, c.g, pg);
+  Serial.printf(&quot;  Azul    %3u       %3u\n&quot;, c.b, pb);
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(300);
+  Serial.println();
+  Serial.println(F(&quot;=== Simulador 3: ánodo común vs cátodo común ===&quot;));
+
+  analogWriteRange(255);
+  analogWriteFreq(1000);
+  pinMode(PIN_R, OUTPUT);
+  pinMode(PIN_G, OUTPUT);
+  pinMode(PIN_B, OUTPUT);
+
+  mostrarColor(SECUENCIA[0]);
+  ultimoCambio = millis();
+}
+
+void loop() {
+  if (millis() - ultimoCambio &gt;= 2000) {
+    ultimoCambio = millis();
+    indice = (indice + 1) % CANTIDAD;
+    mostrarColor(SECUENCIA[indice]);
+  }
+}
+</code></pre>
   </div>
 </section>
 
 <!-- ============================ 5. RESISTENCIA ============================ -->
 <section class="bloque" id="resistencia">
-  <div class="titulo"><span class="num">05</span><h2>¿Qué resistencia pongo?</h2></div>
+  <div class="titulo"><span class="num">04</span><h2>¿Qué resistencia pongo?</h2></div>
   <p class="pregunta">La salida del NodeMCU es de 3,3 V. Cada color de LED “se come” una tensión distinta, y lo que sobra queda en la resistencia. Conviene no pasar de unos 12 mA por pin.</p>
 
   <div class="grid2">
@@ -463,11 +871,133 @@ footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--m
       <p class="nota" id="res-nota"></p>
     </div>
   </div>
+
+  <div class="esquema">
+    <div class="esquema-titulo">Esquema de conexionado</div>
+    <div class="esquema-dibujo" id="esq-res"></div>
+    <ul class="esquema-leyenda"><li><b style="color:#e8891a">D5</b> → resistencia elegida → pata R del LED</li><li>Punto entre la resistencia y el LED (columna 10) → <b style="color:#8e44ad">A0</b></li><li>Pata común (−) → riel − → <b>GND</b></li><li>Las bandas de la resistencia cambian con el valor que elegís arriba.</li></ul>
+  </div>
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Programa para el IDE de Arduino</strong> · <code>s4_medidor_led.ino</code><br><span class="nota">Mide con A0 la tensión del LED y calcula la corriente real. Se calibra con el multímetro.</span></div>
+      <button class="boton sec copiar" type="button" data-objetivo="cod-4">Copiar código</button>
+    </div>
+    <pre class="fuente" id="cod-4"><code>/*
+  ==========================================================================
+  SIMULADOR 4 - ¿Qué resistencia pongo? Medidor de corriente del LED
+  NodeMCU V3 (ESP8266) - Placa en el IDE: &quot;NodeMCU 1.0 (ESP-12E Module)&quot;
+  ==========================================================================
+
+  IDEA
+    El pin D5 queda fijo en ALTO. El punto entre la resistencia y el LED
+    se conecta a A0: así la placa mide la tensión del LED (Vf) y calcula
+    la corriente con la ley de Ohm:
+
+        I = (V_pin - V_led) / R
+
+  CONEXIONADO (un solo color del LED, cátodo común)
+    D5 -&gt; resistencia R -&gt; punto medio -&gt; pata del LED -&gt; GND
+                               |
+                               +-&gt; A0
+
+  ANTES DE EMPEZAR: CALIBRAR CON EL MULTÍMETRO
+    - V_PIN: medí la tensión de D5 contra GND con el LED conectado
+      y escribila en V_PIN (suele dar un poco menos de 3,3 V).
+    - ESCALA_A0: en el NodeMCU, A0 lee de 0 a ~3,3 V. Si la tensión del
+      LED que muestra el programa no coincide con el multímetro, ajustá
+      este valor.
+
+  CÓMO SE USA (Monitor serie a 115200 baudios, &quot;Nueva línea&quot;)
+    r150   -&gt; indica el valor de la resistencia que pusiste (en ohm)
+    ?      -&gt; ayuda
+  ==========================================================================
+*/
+
+const uint8_t PIN_LED = D5;
+
+float V_PIN     = 3.30;     // tensión real del pin en alto (medila)
+float ESCALA_A0 = 3.30;     // tensión que corresponde a la lectura 1023
+float R_OHM     = 150.0;    // resistencia colocada
+const float LIMITE_MA = 12.0;
+
+uint32_t ultimoInforme = 0;
+
+float leerTensionA0() {
+  // Promedio de 32 lecturas para reducir el ruido
+  uint32_t suma = 0;
+  for (uint8_t i = 0; i &lt; 32; i++) {
+    suma += analogRead(A0);
+    delay(2);
+  }
+  float lectura = suma / 32.0;
+  return lectura * ESCALA_A0 / 1023.0;
+}
+
+void mostrarAyuda() {
+  Serial.println(F(&quot;Comandos: r&lt;ohm&gt; (por ejemplo r150), ? ayuda&quot;));
+}
+
+void leerComando() {
+  if (!Serial.available()) return;
+  String linea = Serial.readStringUntil(&#x27;\n&#x27;);
+  linea.trim();
+  if (linea.length() == 0) return;
+
+  if (linea.charAt(0) == &#x27;r&#x27; || linea.charAt(0) == &#x27;R&#x27;) {
+    float valor = linea.substring(1).toFloat();
+    if (valor &gt;= 10.0) {
+      R_OHM = valor;
+      Serial.printf(&quot;Resistencia configurada: %.0f ohm\n&quot;, R_OHM);
+    } else {
+      Serial.println(F(&quot;Valor no válido. Ejemplo: r150&quot;));
+    }
+    return;
+  }
+  mostrarAyuda();
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(300);
+  Serial.println();
+  Serial.println(F(&quot;=== Simulador 4: medidor de corriente del LED ===&quot;));
+
+  pinMode(PIN_LED, OUTPUT);
+  digitalWrite(PIN_LED, HIGH);
+  mostrarAyuda();
+}
+
+void loop() {
+  leerComando();
+
+  if (millis() - ultimoInforme &gt;= 1000) {
+    ultimoInforme = millis();
+
+    float vLed = leerTensionA0();
+    float vResistencia = V_PIN - vLed;
+    float corrienteMa = vResistencia / R_OHM * 1000.0;
+    if (corrienteMa &lt; 0) corrienteMa = 0;
+
+    const char* estado;
+    if (corrienteMa &gt; LIMITE_MA)  estado = &quot;DEMASIADA CORRIENTE: usá una resistencia mayor&quot;;
+    else if (corrienteMa &lt; 4.0)   estado = &quot;Brillo bajo&quot;;
+    else                          estado = &quot;Bien&quot;;
+
+    Serial.println(F(&quot;------------------------------------------------&quot;));
+    Serial.printf(&quot;Tensión del pin        : %.2f V (configurada)\n&quot;, V_PIN);
+    Serial.printf(&quot;Tensión del LED (Vf)   : %.2f V (medida en A0)\n&quot;, vLed);
+    Serial.printf(&quot;Tensión en R (%.0f ohm) : %.2f V\n&quot;, R_OHM, vResistencia);
+    Serial.printf(&quot;Corriente              : %.1f mA  -&gt; %s\n&quot;, corrienteMa, estado);
+  }
+}
+</code></pre>
+  </div>
 </section>
 
 </main>
 <footer>Valores típicos: la caída de tensión real de cada LED varía entre modelos. Medila con el multímetro para ajustar el cálculo.</footer>
 
+<script src="esquemas.js"></script>
 <script>
 (function () {
   "use strict";
@@ -670,61 +1200,15 @@ footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--m
       nota = "Ánodo común: la corriente entra al pin. El LED enciende cuando el pin está en BAJO (0 V).";
     }
     q("circuito").innerHTML = html;
+    if (window.Esquemas) {
+      Esquemas.dibujar("anodo", q("esq-anodo"), an.tipo);
+      q("esq-anodo-comun").innerHTML = an.tipo === "anodo" ? 'Pata común (+) → riel + → <b style="color:#d62828">3V3</b> (nunca a VIN ni a 5 V)' : 'Pata común (−) → riel − → <b>GND</b>';
+    }
     q("circuito-nota").textContent = nota;
   }
   grupoChips(q("tipo-led"), function (b) { an.tipo = b.dataset.t; actualizarAnodo(); });
   grupoChips(q("an-presets"), function (b) { an.c = b.dataset.c.split(",").map(Number); actualizarAnodo(); });
   q("corregido").addEventListener("change", function (e) { an.corregido = e.target.checked; actualizarAnodo(); });
-
-  /* ---------------- 4. RECORRIDO ---------------- */
-  var pasos = Array.prototype.slice.call(document.querySelectorAll("#pasos .paso"));
-  var rec = { c: [255, 0, 0], paso: -1, timer: null };
-
-  function textoPaso(i, c) {
-    var url = "/set?r=" + c[0] + "&g=" + c[1] + "&b=" + c[2];
-    var json = '{"grupo":1,"anodo":false,"r":' + c[0] + ',"g":' + c[1] + ',"b":' + c[2] +
-      ',"pr":' + c[0] + ',"pg":' + c[1] + ',"pb":' + c[2] + ',"clientes":1,"frecuencia":1000}';
-    var D = c.map(function (v) { return coma(v / 255 * 100, 1) + " %"; });
-    switch (i) {
-      case 0: return '<span class="c">GET ' + url + '</span>\nHost: 192.168.4.1';
-      case 1: return '<span class="c">GET ' + url + '</span>\n→ por la red ROBOTICA-G1 (canal 1, sin internet)';
-      case 2: return 'servidor.on("/set", manejarSet)\nr = ' + c[0] + '   g = ' + c[1] + '   b = ' + c[2];
-      case 3: return 'analogWrite(D5, ' + c[0] + ');   // ' + D[0] + '\nanalogWrite(D6, ' + c[1] + ');   // ' + D[1] + '\nanalogWrite(D7, ' + c[2] + ');   // ' + D[2];
-      case 4: return 'LED → rgb(' + c.join(", ") + ')';
-      case 5: return '<span class="r">HTTP 200  application/json</span>\n' + json;
-    }
-    return "";
-  }
-
-  function mostrarPaso(i) {
-    rec.paso = i;
-    pasos.forEach(function (p, k) {
-      p.classList.toggle("activo", k === i);
-      p.classList.toggle("hecho", k < i);
-    });
-    q("rec-msg").innerHTML = i >= 0 ? textoPaso(i, rec.c) : "Elegí un color para enviar.";
-    if (i >= 4) { luzRGB(q("rec-led"), rec.c[0], rec.c[1], rec.c[2]); q("rec-led-txt").textContent = "rgb(" + rec.c.join(", ") + ")"; }
-  }
-
-  function enviar(c, automatico) {
-    if (rec.timer) { clearInterval(rec.timer); rec.timer = null; }
-    rec.c = c;
-    if (!automatico) { mostrarPaso(0); return; }
-    if (reduceMotion) { mostrarPaso(5); return; }
-    var i = 0; mostrarPaso(0);
-    rec.timer = setInterval(function () {
-      i++; mostrarPaso(i);
-      if (i >= 5) { clearInterval(rec.timer); rec.timer = null; }
-    }, 900);
-  }
-
-  q("rec-colores").querySelectorAll("[data-c]").forEach(function (b) {
-    b.addEventListener("click", function () { enviar(b.dataset.c.split(",").map(Number), true); });
-  });
-  q("rec-paso").addEventListener("click", function () {
-    if (rec.timer) { clearInterval(rec.timer); rec.timer = null; }
-    mostrarPaso(rec.paso >= 5 ? 0 : rec.paso + 1);
-  });
 
   /* ---------------- 5. RESISTENCIA ---------------- */
   var res = { vf: 2.0, r: 150, nombre: "rojo" };
@@ -746,17 +1230,33 @@ footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--m
     var b = q("res-barra");
     b.style.width = Math.min(100, i / 20 * 100) + "%";
     b.style.background = color;
+    if (window.Esquemas) Esquemas.dibujar("resistencia", q("esq-res"), res.r);
   }
   grupoChips(q("res-led"), function (b) { res.vf = +b.dataset.vf; actualizarRes(); });
   grupoChips(q("res-r"), function (b) { res.r = +b.dataset.r; actualizarRes(); });
 
+  /* ---------------- Copiar código ---------------- */
+  document.querySelectorAll(".copiar").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var texto = q(btn.dataset.objetivo).textContent;
+      function listo(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = "Copiar código"; }, 1800); }
+      function seleccionar() {
+        var r = document.createRange(); r.selectNodeContents(q(btn.dataset.objetivo));
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        listo("Seleccionado: Ctrl+C");
+      }
+      try {
+        navigator.clipboard.writeText(texto).then(function () { listo("Copiado"); }, seleccionar);
+      } catch (e) { seleccionar(); }
+    });
+  });
+
   /* ---------------- Inicio ---------------- */
   function redibujar() { dibujarOsc(); actualizarRgb(); }
+  if (window.Esquemas) { Esquemas.dibujar("pwm", q("esq-pwm")); Esquemas.dibujar("rgb", q("esq-rgb")); }
   actualizarPwm();
   actualizarRgb();
   actualizarAnodo();
-  rec.c = [255, 0, 0];
-  q("rec-msg").textContent = "Elegí un color para enviar.";
   actualizarRes();
   requestAnimationFrame(cuadroPwm);
   var rt = null;
