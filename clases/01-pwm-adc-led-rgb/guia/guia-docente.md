@@ -1,15 +1,15 @@
-# Clase 1 – La placa que crea su propia red
+# Clase 1 – ESP8266: PWM y ADC con LED RGB
 
 Guía para el docente · Diego Barrera · DiHuBar Educations
 
 ## Resumen
 
-Cada grupo convierte su NodeMCU en una red WiFi propia, con una página web interna, y controla un LED RGB desde el celular. Después comprueba con osciloscopio y multímetro que los valores que muestra la página son los que realmente salen por el pin.
+Cada grupo usa los dos periféricos básicos del ESP8266: el **PWM**, para dar valores intermedios con un pin que solo tiene dos niveles, y el **ADC**, para medir una tensión con la entrada A0. Controlan un LED RGB desde el celular, a través de una red WiFi propia de la placa, y comprueban con osciloscopio y multímetro que los valores del programa son los que realmente hay en los pines.
 
 - **Duración:** 90 minutos, 5 grupos.
-- **Programa:** [`clase01_led_wifi.ino`](../firmware/clase01_led_wifi/clase01_led_wifi.ino) (se entrega completo, junto con esta guía).
-- **Conceptos:** punto de acceso (AP), servidor web, PWM, ciclo de trabajo, tensión promedio, LED de ánodo común y de cátodo común.
-- **Matemática en juego:** proporcionalidad (tensión promedio = ciclo de trabajo × 3,3 V), porcentajes y conversión a tiempo (µs).
+- **Programas:** [`clase01_led_wifi.ino`](../firmware/clase01_led_wifi/clase01_led_wifi.ino) (control del LED por WiFi) y [`s4_medidor_led.ino`](../firmware/s4_medidor_led/s4_medidor_led.ino) (actividad de ADC). Están en el repositorio, junto con los programas de cada simulador.
+- **Conceptos:** PWM, ciclo de trabajo, tensión promedio, conversión analógica-digital (ADC), resolución, LED de ánodo común y de cátodo común, punto de acceso (AP) y servidor web.
+- **Matemática en juego:** proporcionalidad (tensión promedio = ciclo de trabajo × 3,3 V; tensión = lectura × 3,3 V / 1023), porcentajes, conversión a tiempo (µs) y ley de Ohm.
 - **Sin internet:** la placa crea su propia red, así que no depende de la conexión de la escuela.
 
 ## Materiales
@@ -22,8 +22,10 @@ Cada grupo convierte su NodeMCU en una red WiFi propia, con una página web inte
 | LED RGB de ánodo común | 1 | 5 (si hay menos, se rotan en el desafío) |
 | Resistencia de 150 Ω (rojo) | 1 | 5 |
 | Resistencias de 47 a 100 Ω (verde y azul) | 2 | 10 |
+| Resistencias de 47, 100 y 220 Ω (actividad ADC) | 1 de cada una | 5 de cada una |
+| Potenciómetro de 10 kΩ (opcional) | 1 | 5 |
 | Protoboard | 1 | 5 |
-| Cables dupont macho-macho | 6 | 30 |
+| Cables dupont macho-macho | 8 | 40 |
 | Netbook con Arduino IDE | 1 | 5 |
 | Celular de un alumno | 1 o más | — |
 | Multímetro | 1 si alcanzan | los disponibles |
@@ -66,11 +68,12 @@ Conviene dejar todo instalado y probado antes de la clase: la instalación del s
 La clase arranca con una pregunta que los alumnos no saben responder y termina cuando la responden con sus propias mediciones.
 
 1. **Apertura (0–10 min).** El docente muestra la red ROBOTICA-G1 en el proyector o en su celular; todos se conectan y cambian el color al mismo tiempo. Pregunta: *¿cómo hace la placa para dar “medio rojo” si un pin solo puede estar en 0 V o en 3,3 V?* Cada grupo escribe su predicción en la ficha.
-2. **Armado y carga (10–30 min).** Conexionado con el LED de cátodo común, cambio de `GRUPO` en el código, carga y apertura del monitor serie a 115200 baudios.
-3. **Prueba (30–40 min).** Conexión a su red desde el celular, prueba de colores y observación del monitor serie, que muestra cada valor recibido.
-4. **Medición (40–65 min).** Con el multímetro completan la tabla de mediciones. En paralelo, cada grupo pasa unos 5 minutos por la estación del osciloscopio.
-5. **Desafío del ánodo común (65–80 min).** Cambian el LED sin tocar el código, explican lo que ven y lo corrigen.
-6. **Cierre (80–90 min).** Vuelven a la predicción inicial y la contrastan con lo medido. Cada grupo responde en voz alta una pregunta de la ficha.
+2. **Armado y carga (10–25 min).** Conexionado con el LED de cátodo común, cambio de `GRUPO` en el código, carga y apertura del monitor serie a 115200 baudios.
+3. **Prueba (25–35 min).** Conexión a su red desde el celular, prueba de colores y observación del monitor serie, que muestra cada valor recibido.
+4. **Medición del PWM (35–55 min).** Con el multímetro completan la tabla de mediciones. En paralelo, cada grupo pasa unos 5 minutos por la estación del osciloscopio.
+5. **Actividad ADC (55–70 min).** Cargan `s4_medidor_led`, conectan A0 al punto entre la resistencia y el LED, y comparan la tensión que mide la placa con la del multímetro.
+6. **Desafío del ánodo común (70–82 min).** Cambian el LED sin tocar el código, explican lo que ven y lo corrigen.
+7. **Cierre (82–90 min).** Vuelven a la predicción inicial y la contrastan con lo medido. Cada grupo responde en voz alta una pregunta de la ficha.
 
 Para proyectar durante la clase están los [simuladores interactivos](../simuladores/index.html).
 
@@ -93,6 +96,32 @@ D = \frac{\text{valor en el pin}}{255} \qquad t_{alto} = D \times 1000\ \mu s \q
 | 255 | 100 % | 1000 | 3,30 V |  |  |  |
 
 La tensión medida suele quedar un poco por debajo de la esperada: con el LED encendido, el nivel alto del pin baja de 3,3 V. Explicar esa diferencia es parte de la actividad.
+
+## Actividad ADC: la placa mide la tensión del LED
+
+El ADC del ESP8266 convierte una tensión en un número de 0 a 1023 (10 bits). En el NodeMCU, la entrada A0 acepta de 0 a unos 3,3 V, porque la placa trae un divisor de tensión: el chip solo admite 0 a 1 V. Cada paso del ADC vale unos 3,2 mV.
+
+```math
+V = \frac{\text{lectura} \times 3{,}3\ V}{1023} \qquad I = \frac{V_{pin} - V_{LED}}{R}
+```
+
+**Montaje:** D5 → resistencia → pata R del LED → GND. El punto entre la resistencia y el LED se conecta a **A0**. El esquema está en el simulador 4.
+
+1. Medir con el multímetro la tensión de D5 contra GND con el LED conectado, y escribirla en `V_PIN` del programa [`s4_medidor_led`](../firmware/s4_medidor_led/s4_medidor_led.ino).
+2. Cargar el programa y abrir el monitor serie a 115200 baudios. Cada segundo muestra la tensión del LED medida en A0 y la corriente calculada.
+3. Medir la misma tensión del LED con el multímetro y comparar.
+4. Cambiar la resistencia (47, 100, 150 y 220 Ω), indicarla en el monitor con `r47`, `r100`, etc., y completar la tabla.
+
+| Resistencia | V LED en A0 | V LED con multímetro | Diferencia | Corriente calculada | ¿Bajo 12 mA? |
+| --- | --- | --- | --- | --- | --- |
+| 47 Ω |  |  |  |  |  |
+| 100 Ω |  |  |  |  |  |
+| 150 Ω |  |  |  |  |  |
+| 220 Ω |  |  |  |  |  |
+
+**Para discutir:** la tensión del LED cambia poco aunque la corriente cambie mucho. ¿Por qué? Y si la lectura de A0 no coincide con el multímetro, ¿qué valor del programa hay que ajustar (`ESCALA_A0`)?
+
+**Extra:** en el programa del simulador 1, el comando `p` usa el ADC para fijar el PWM con un potenciómetro en A0. Es el camino inverso: medir una tensión para controlar el brillo.
 
 ## Desafío: el LED de ánodo común
 
@@ -146,19 +175,21 @@ Mi predicción: ................................................................
 1. Armá el circuito según la tabla de conexionado.
 2. En el código, cambiá `GRUPO` por el número de tu grupo y cargá el programa.
 3. Conectate desde el celular a la red **ROBOTICA-G** + tu número (clave: `robotica2026`) y abrí `192.168.4.1`.
-4. Completá la tabla de mediciones con el multímetro y el osciloscopio.
-5. Cambiá el LED por uno de ánodo común y resolvé el desafío.
+4. Completá la tabla de mediciones del PWM con el multímetro y el osciloscopio.
+5. Cargá `s4_medidor_led`, conectá A0 al punto entre la resistencia y el LED, y completá la tabla del ADC.
+6. Cambiá el LED por uno de ánodo común y resolvé el desafío.
 
 **Preguntas de cierre**
 
 1. ¿Cómo logra el pin hacer “medio rojo”? ¿Acertaste en tu predicción?
 2. Si el valor en el pin es 100, ¿qué tensión promedio esperás? Calculala y medila.
 3. ¿Por qué el multímetro muestra un valor intermedio si el osciloscopio muestra solo dos niveles?
-4. ¿Qué cambió con el LED de ánodo común? Escribí la fórmula que usaste para corregirlo.
-5. ¿Por qué la placa no necesita internet para funcionar?
+4. Si A0 lee 620, ¿qué tensión hay en la entrada? ¿Y cuánto vale cada paso del ADC?
+5. ¿Qué cambió con el LED de ánodo común? Escribí la fórmula que usaste para corregirlo.
+6. ¿Por qué la placa no necesita internet para funcionar?
 
-*Respuesta de la pregunta 2 para el docente: 100 / 255 × 3,3 V ≈ 1,29 V.*
+*Respuestas para el docente. Pregunta 2: 100 / 255 × 3,3 V ≈ 1,29 V. Pregunta 4: 620 × 3,3 V / 1023 ≈ 2,00 V; cada paso vale 3,3 V / 1023 ≈ 3,2 mV.*
 
 ## Lo que queda listo para la Clase 2
 
-Al terminar, cada grupo tiene una placa con su propia red y una página web que ya sabe recibir órdenes y devolver datos. La Clase 2 reutiliza esa base para mostrar sensores en vivo en la misma página.
+Al terminar, cada grupo maneja las dos herramientas básicas del ESP8266: una salida que da valores intermedios (PWM) y una entrada que mide tensiones (ADC). También tiene una placa con su propia red y una página web que ya sabe recibir órdenes y devolver datos. La Clase 2 reutiliza esa base para mostrar sensores en vivo en la misma página.

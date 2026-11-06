@@ -1,6 +1,7 @@
 /*
   ==========================================================================
-  CLASE 1 - "La placa que crea su propia red"
+  CLASE 1 - "ESP8266: PWM y ADC con LED RGB"
+  Programa principal: control del LED RGB por WiFi
   Robótica con NodeMCU V3 (ESP8266)
   ==========================================================================
 
@@ -335,7 +336,7 @@ void setup() {
   Serial.begin(115200);
   delay(200);
   Serial.println();
-  Serial.println("=== Clase 1 - La placa que crea su propia red ===");
+  Serial.println("=== Clase 1 - ESP8266: PWM y ADC con LED RGB ===");
 
   // PWM: rango 0..255 y 1 kHz (se ve muy bien en el osciloscopio)
   analogWriteRange(PWM_RANGO);

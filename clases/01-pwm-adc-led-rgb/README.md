@@ -1,6 +1,6 @@
-# Clase 1 – La placa que crea su propia red
+# Clase 1 – ESP8266: PWM y ADC con LED RGB
 
-Cada grupo convierte su NodeMCU en una red WiFi propia, con una página web interna, y controla un LED RGB desde el celular. Después comprueba con osciloscopio y multímetro que los valores que muestra la página son los que realmente salen por el pin.
+Cada grupo usa los dos periféricos básicos del ESP8266: el **PWM**, para dar valores intermedios con un pin que solo tiene dos niveles, y el **ADC**, para medir una tensión con la entrada A0. Controlan un LED RGB desde el celular, a través de una red WiFi propia de la placa, y comprueban con osciloscopio y multímetro que los valores del programa son los que realmente hay en los pines.
 
 ![Página que ve el alumno en el celular](img/captura-pagina-celular.png)
 
@@ -20,9 +20,9 @@ Cada grupo convierte su NodeMCU en una red WiFi propia, con una página web inte
 
 Todos los programas compilan sin errores ni advertencias para **NodeMCU 1.0 (ESP-12E Module)** con el núcleo esp8266 3.1.2.
 
-**Simuladores en línea:** https://dihubar-educations.github.io/robotica-iot/clases/01-red-propia-led-rgb/simuladores/
+**Simuladores en línea:** https://dihubar-educations.github.io/robotica-iot/clases/01-pwm-adc-led-rgb/simuladores/
 
-**Tutorial del IDE y el driver CH340:** https://dihubar-educations.github.io/robotica-iot/clases/01-red-propia-led-rgb/simuladores/tutorial.html
+**Tutorial del IDE y el driver CH340:** https://dihubar-educations.github.io/robotica-iot/clases/01-pwm-adc-led-rgb/simuladores/tutorial.html
 
 ## Datos rápidos
 

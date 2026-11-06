@@ -6,7 +6,7 @@ Cada clase parte de un desafío concreto y termina con mediciones reales. Todo l
 
 **Simuladores en línea:** https://dihubar-educations.github.io/robotica-iot/
 
-**Primera vez con el ESP8266:** [tutorial para configurar el IDE y resolver el driver CH340](https://dihubar-educations.github.io/robotica-iot/clases/01-red-propia-led-rgb/simuladores/tutorial.html)
+**Primera vez con el ESP8266:** [tutorial para configurar el IDE y resolver el driver CH340](https://dihubar-educations.github.io/robotica-iot/clases/01-pwm-adc-led-rgb/simuladores/tutorial.html)
 
 ## Destinatarios
 
@@ -26,7 +26,7 @@ El curso suma una capa de comunicación por etapa, hasta llegar a un sistema con
 
 | Etapa | Tema | Clases |
 | --- | --- | --- |
-| 1 | Una placa con su propia red: el ESP8266 como punto de acceso con página web interna | [Clase 1](clases/01-red-propia-led-rgb/) |
+| 1 | Una placa con su propia red: el ESP8266 como punto de acceso con página web interna | [Clase 1](clases/01-pwm-adc-led-rgb/) |
 | 2 | Placas que hablan entre sí: ESP-NOW | próximamente |
 | 3 | Placas que hablan con la computadora: MQTT y Node-RED | próximamente |
 | 4 | Salida a internet: Adafruit IO | próximamente |
@@ -37,7 +37,7 @@ El curso suma una capa de comunicación por etapa, hasta llegar a un sistema con
 
 | N.º | Clase | Contenido |
 | --- | --- | --- |
-| 01 | [La placa que crea su propia red](clases/01-red-propia-led-rgb/) | Punto de acceso WiFi, servidor web, PWM, LED RGB, ánodo y cátodo común |
+| 01 | [ESP8266: PWM y ADC con LED RGB](clases/01-pwm-adc-led-rgb/) | PWM, tensión promedio, ADC (entrada A0), LED RGB, ánodo y cátodo común, punto de acceso WiFi y servidor web |
 
 ## Estructura del repositorio
 
@@ -46,7 +46,7 @@ robotica-iot/
 ├── index.html                  Portada de los simuladores (GitHub Pages)
 ├── README.md
 └── clases/
-    └── 01-red-propia-led-rgb/
+    └── 01-pwm-adc-led-rgb/
         ├── README.md           Resumen de la clase
         ├── firmware/           Programa para cargar en la placa
         ├── guia/               Guía para el docente y ficha del alumno
@@ -71,7 +71,7 @@ arduino-cli config init
 arduino-cli config add board_manager.additional_urls http://arduino.esp8266.com/stable/package_esp8266com_index.json
 arduino-cli core update-index
 arduino-cli core install esp8266:esp8266
-arduino-cli compile --fqbn esp8266:esp8266:nodemcuv2 clases/01-red-propia-led-rgb/firmware/clase01_led_wifi
+arduino-cli compile --fqbn esp8266:esp8266:nodemcuv2 clases/01-pwm-adc-led-rgb/firmware/clase01_led_wifi
 ```
 
 Los programas se verifican compilando con el núcleo `esp8266:esp8266` versión 3.1.2.
