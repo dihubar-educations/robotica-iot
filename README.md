@@ -27,7 +27,7 @@ El curso suma una capa de comunicación por etapa, hasta llegar a un sistema con
 | Etapa | Tema | Clases |
 | --- | --- | --- |
 | 1 | Una placa con su propia red: el ESP8266 como punto de acceso con página web interna | [Clase 1](clases/01-pwm-adc-led-rgb/) |
-| 2 | Placas que hablan entre sí: ESP-NOW | próximamente |
+| 2 | Placas que hablan entre sí: ESP-NOW | [Clase 2](clases/02-espnow-chat-led/) |
 | 3 | Placas que hablan con la computadora: MQTT y Node-RED | próximamente |
 | 4 | Salida a internet: Adafruit IO | próximamente |
 | 5 | La computadora ve y escucha: OpenCV, MediaPipe, TensorFlow | próximamente |
@@ -38,6 +38,7 @@ El curso suma una capa de comunicación por etapa, hasta llegar a un sistema con
 | N.º | Clase | Contenido |
 | --- | --- | --- |
 | 01 | [ESP8266: PWM y ADC con LED RGB](clases/01-pwm-adc-led-rgb/) | PWM, tensión promedio, ADC (entrada A0), LED RGB, ánodo y cátodo común, punto de acceso WiFi y servidor web |
+| 02 | [ESP8266: ESP-NOW, chat y LED remoto](clases/02-espnow-chat-led/) | ESP-NOW entre dos placas, red WiFi propia con página web, chat entre celulares, LED propio y remoto, MAC, EEPROM, alcance y tiempo de ida y vuelta |
 
 ## Estructura del repositorio
 

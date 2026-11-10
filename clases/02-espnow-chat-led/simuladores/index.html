@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simuladores de la Clase 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+
+/* Plan: mesa de laboratorio clara, con los instrumentos (osciloscopio, multímetro) como paneles oscuros.
+   Colores de canal como en un osciloscopio real: CH1 amarillo, promedio cian. Secciones apiladas para proyectar. */
+:root {
+  --bg: #f3f4f1;
+  --surface: #ffffff;
+  --ink: #1d2320;
+  --muted: #5d6762;
+  --line: #d7dcd8;
+  --accent: #1f6f8b;
+  --instrument: #14191b;
+  --instrument-line: #2b3438;
+  --trace: #f2c230;
+  --trace2: #4fd1e6;
+  --ok: #2e8b57;
+  --warn: #c98a12;
+  --bad: #c0392b;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", Arial, Helvetica, sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111517;
+    --surface: #1a2023;
+    --ink: #e7ece9;
+    --muted: #9aa6a1;
+    --line: #2e373b;
+    --accent: #5fb6d3;
+    --instrument: #0b0f10;
+    --instrument-line: #263034;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111517;
+  --surface: #1a2023;
+  --ink: #e7ece9;
+  --muted: #9aa6a1;
+  --line: #2e373b;
+  --accent: #5fb6d3;
+  --instrument: #0b0f10;
+  --instrument-line: #263034;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.5;
+}
+header.top {
+  padding: 28px 20px 12px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.kicker { font-family: var(--font-mono); font-size: 13px; color: var(--accent); letter-spacing: .04em; }
+h1, h2 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 4.5vw, 46px); line-height: 1.05; margin-top: 6px; }
+.lead { color: var(--muted); max-width: 68ch; margin: 10px 0 0; }
+nav.secciones {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+nav.secciones .fila {
+  max-width: 1100px; margin: 0 auto; padding: 10px 20px;
+  display: flex; gap: 8px; overflow-x: auto;
+}
+nav.secciones a {
+  white-space: nowrap; text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); background: var(--surface);
+  padding: 6px 12px; border-radius: 999px; font-size: 14px;
+}
+nav.secciones a:hover, nav.secciones a:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+main { max-width: 1100px; margin: 0 auto; padding: 8px 20px 60px; display: grid; gap: 28px; }
+section.bloque {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px;
+  display: grid;
+  gap: 16px;
+  scroll-margin-top: 70px;
+}
+.titulo { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+.num { font-family: var(--font-mono); color: var(--accent); font-size: 15px; }
+h2 { font-size: clamp(24px, 3vw, 32px); line-height: 1.1; }
+.pregunta { color: var(--muted); margin: 0; max-width: 70ch; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* Controles */
+.controles { display: grid; gap: 12px; }
+.control label { display: flex; justify-content: space-between; font-weight: 600; font-size: 15px; }
+.control output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: inherit; font-size: 14px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  padding: 6px 12px; border-radius: 999px;
+}
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.boton {
+  font: inherit; font-weight: 600; cursor: pointer;
+  border: none; border-radius: 10px; padding: 10px 16px;
+  background: var(--accent); color: #fff;
+}
+.boton.sec { background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+
+/* Instrumentos */
+.instrumento {
+  background: var(--instrument);
+  border: 1px solid var(--instrument-line);
+  border-radius: 12px;
+  padding: 12px;
+  color: #cfd8d4;
+}
+.instrumento .rotulo { font-family: var(--font-mono); font-size: 12px; color: #8a9893; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+canvas.osc { width: 100%; height: 260px; display: block; margin-top: 8px; border-radius: 6px; }
+.lecturas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+@media (max-width: 560px) { .lecturas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lectura { background: #0f1416; border: 1px solid var(--instrument-line); border-radius: 8px; padding: 8px; }
+.lectura .k { font-size: 11px; color: #8a9893; font-family: var(--font-mono); }
+.lectura .v { font-family: var(--font-mono); font-size: 20px; color: var(--trace); font-variant-numeric: tabular-nums; }
+.lectura.prom .v { color: var(--trace2); }
+
+.lateral { display: grid; gap: 14px; }
+.multimetro { text-align: center; }
+.multimetro .pantalla {
+  margin-top: 8px; background: #b9c4a6; color: #1c2414; border-radius: 8px;
+  font-family: var(--font-mono); font-size: 44px; font-weight: 600; padding: 8px 10px;
+  font-variant-numeric: tabular-nums; letter-spacing: .02em;
+}
+.multimetro .pantalla small { font-size: 20px; }
+.led-caja { display: grid; place-items: center; padding: 18px 0 8px; }
+.led {
+  width: 92px; height: 92px; border-radius: 50%;
+  background: #2a2f31; position: relative;
+  border: 3px solid #3a4245;
+}
+.led .luz { position: absolute; inset: 0; border-radius: 50%; }
+.nota { font-size: 14px; color: var(--muted); margin: 0; }
+.instrumento .nota { color: #8a9893; }
+.idea {
+  border-left: 4px solid var(--accent); background: var(--bg);
+  padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 0;
+}
+.formula { font-family: var(--font-mono); font-size: 15px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+
+/* RGB */
+.canales { display: grid; gap: 10px; }
+.canal { display: grid; grid-template-columns: 70px minmax(0, 1fr) 120px; gap: 10px; align-items: center; }
+@media (max-width: 560px) { .canal { grid-template-columns: 56px minmax(0, 1fr); } .canal canvas { grid-column: 1 / -1; } }
+.canal .nom { font-weight: 600; }
+.canal canvas { width: 100%; height: 44px; background: var(--instrument); border-radius: 6px; }
+
+/* Tablas */
+.tabla-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+th { font-size: 13px; color: var(--muted); font-weight: 600; }
+td.n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+th.n { text-align: right; }
+
+/* Ánodo / cátodo */
+.circuito { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pieza {
+  border: 1px solid var(--line); background: var(--bg); border-radius: 8px;
+  padding: 8px 10px; font-family: var(--font-mono); font-size: 14px; text-align: center; min-width: 74px;
+}
+.pieza small { display: block; color: var(--muted); font-family: var(--font-body); font-size: 11px; }
+.flecha { font-family: var(--font-mono); color: var(--accent); font-size: 20px; }
+.muestras { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.muestra { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.muestra .color { height: 90px; }
+.muestra .pie { padding: 6px 10px; font-size: 14px; display: flex; justify-content: space-between; gap: 8px; }
+.estado { font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: #fff; }
+.estado.ok { background: var(--ok); }
+.estado.mal { background: var(--bad); }
+.estado.atencion { background: var(--warn); }
+.interruptor { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.interruptor input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+/* Esquemas */
+.esquema { border: 1px solid var(--line); border-radius: 12px; background: #fafaf7; color: #1d2320; overflow: hidden; }
+.esquema-titulo { padding: 10px 14px; font-weight: 600; border-bottom: 1px solid #e3e2dc; background: #f1f0ea; }
+.esquema-dibujo { overflow-x: auto; padding: 6px; }
+.esquema-dibujo svg { display: block; width: 100%; min-width: 620px; height: auto; }
+.esquema-leyenda { margin: 0; padding: 10px 14px 12px 32px; font-size: 14px; display: grid; gap: 2px; border-top: 1px solid #e3e2dc; }
+/* Código */
+.codigo { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.codigo-barra { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; background: var(--bg); border-bottom: 1px solid var(--line); }
+pre.fuente { margin: 0; max-height: 420px; overflow: auto; background: var(--instrument); color: #d8e3de; padding: 14px; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.55; tab-size: 2; }
+.lead a, .nota a { color: var(--accent); }
+/* Calculadora */
+.barra { height: 18px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; position: relative; overflow: hidden; }
+.barra .relleno { position: absolute; inset: 0 auto 0 0; border-radius: 999px; }
+.barra .limite { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); }
+.resultado { font-family: var(--font-mono); font-size: 34px; font-variant-numeric: tabular-nums; }
+footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--muted); font-size: 14px; }
+
+/* ---- Clase 2 ---- */
+.sistema svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.red { display: grid; grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr); gap: 12px; align-items: stretch; }
+@media (max-width: 860px) { .red { grid-template-columns: 1fr; } .aire { min-height: 120px; } }
+.telefono { background: var(--instrument); border: 1px solid var(--instrument-line); border-radius: 18px; padding: 12px; color: #dfe6e2; display: grid; gap: 8px; }
+.telefono .cab { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 13px; }
+.telefono .cab b { color: var(--trace); font-size: 15px; }
+.chatbox { height: 170px; overflow-y: auto; background: #0b0f10; border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 5px; }
+.burbuja { max-width: 85%; padding: 5px 8px; border-radius: 9px; font-size: 14px; }
+.burbuja small { display: block; font-size: 11px; color: #9aa6a1; }
+.burbuja.mia { align-self: flex-end; background: #1f4e73; }
+.burbuja.suya { align-self: flex-start; background: #333a40; }
+.burbuja.sistema { align-self: center; background: transparent; color: #8a9893; font-size: 12px; font-style: italic; }
+.envio { display: flex; gap: 6px; }
+.envio input { flex: 1; min-width: 0; padding: 8px; border-radius: 8px; border: 1px solid #333; background: #0b0f10; color: #eee; font: inherit; font-size: 14px; }
+.botones-led { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.botones-led button { font: inherit; font-size: 13px; font-weight: 600; border: none; border-radius: 8px; padding: 8px 6px; background: #2a7fb8; color: #fff; cursor: pointer; }
+.placa-mini { display: flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 12px; color: #8a9893; }
+.led-azul { width: 16px; height: 16px; border-radius: 50%; background: #1d2a36; border: 2px solid #33414d; flex: none; }
+.led-azul.on { background: #3aa0ff; box-shadow: 0 0 14px #3aa0ff; border-color: #7cc0ff; }
+.aire { position: relative; border: 2px dashed var(--line); border-radius: 14px; overflow: hidden; background: var(--bg); min-height: 260px; }
+.aire .rotulo-aire { position: absolute; top: 8px; left: 0; right: 0; text-align: center; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.paquete { position: absolute; left: 4px; padding: 3px 7px; border-radius: 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: #111; white-space: nowrap; transition: left .8s linear, opacity .3s; }
+.paquete.perdido { opacity: .15; text-decoration: line-through; }
+.controles-red { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.controles-red .control { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+select { font: inherit; padding: 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.bitacora { font-family: var(--font-mono); font-size: 13px; background: var(--instrument); color: #cfd8d4; border-radius: 10px; padding: 10px; height: 150px; overflow-y: auto; }
+.bitacora .ok { color: #7bd88f; } .bitacora .mal { color: #ff8a80; } .bitacora .gris { color: #8a9893; }
+.bytes { display: grid; grid-template-columns: repeat(17, minmax(0, 1fr)); gap: 3px; }
+@media (max-width: 640px) { .bytes { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+.byte { font-family: var(--font-mono); font-size: 11px; text-align: center; padding: 4px 0; border-radius: 4px; color: #111; }
+.leyenda-campos { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; }
+.leyenda-campos span { display: inline-flex; align-items: center; gap: 6px; }
+.leyenda-campos i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+.campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.campos label { font-size: 14px; font-weight: 600; display: grid; gap: 4px; }
+.campos input { font: inherit; padding: 7px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.eeprom { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; }
+.eeprom div { border: 1px solid var(--line); border-radius: 6px; text-align: center; padding: 6px 0; font-family: var(--font-mono); background: var(--bg); }
+.eeprom div small { display: block; font-size: 10px; color: var(--muted); font-family: var(--font-body); }
+.eeprom div.cambio { background: color-mix(in srgb, var(--trace) 35%, var(--bg)); }
+.vecina-sim { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.vecina-sim .mac { font-family: var(--font-mono); font-size: 13px; color: var(--accent); }
+.monitor { font-family: var(--font-mono); font-size: 13px; background: var(--instrument); color: #cfd8d4; border-radius: 10px; padding: 10px; min-height: 120px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="kicker">ROBÓTICA · NODEMCU V3 (ESP8266) · CLASE 2</div>
+  <h1>ESP8266: ESP-NOW, chat y LED remoto</h1>
+  <p class="lead">Dos placas se hablan directamente por ESP-NOW, sin router, mientras cada una atiende a su celular con su propia red WiFi. Estos simuladores usan los mismos valores que el programa <code>clase02_espnow_chat.ino</code>.</p>
+  <p class="lead">¿Primera vez con el ESP8266? <a href="https://dihubar-educations.github.io/robotica-iot/clases/01-pwm-adc-led-rgb/simuladores/tutorial.html">Tutorial: configurar el IDE y resolver el problema del driver CH340</a>.</p>
+</header>
+
+<nav class="secciones" aria-label="Secciones">
+  <div class="fila">
+    <a href="#sistema">1 · Cómo está armado</a>
+    <a href="#red">2 · Chat y LED</a>
+    <a href="#mensaje">3 · El mensaje por dentro</a>
+    <a href="#pareja">4 · Emparejar y EEPROM</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- ============================ 1. SISTEMA ============================ -->
+<section class="bloque" id="sistema">
+  <div class="titulo"><span class="num">01</span><h2>Dos redes funcionando al mismo tiempo</h2></div>
+  <p class="pregunta">Cada placa crea su propia red WiFi para el celular y, a la vez, habla con la otra placa por ESP-NOW. No hay router ni internet en ningún lado. ¿Qué viaja por cada red?</p>
+
+  <div class="esquema sistema">
+    <div class="esquema-titulo">Esquema del sistema</div>
+    <div class="esquema-dibujo" id="esq-sistema"></div>
+    <ul class="esquema-leyenda">
+      <li><b style="color:#2b6fd6">WiFi común (línea azul):</b> celular ↔ su placa. Red <code>CHAT-XXXX</code>, clave <code>robotica2026</code>, página en <code>192.168.4.1</code>.</li>
+      <li><b style="color:#e8891a">ESP-NOW (línea naranja):</b> placa ↔ placa. Mensajes de hasta 250 bytes, directos, con confirmación de entrega.</li>
+      <li>No hay que conectar nada: alcanza con alimentar cada NodeMCU por USB. Se usa el <b>LED azul de la placa</b> (<code>LED_BUILTIN</code>, D4 / GPIO2), que enciende con el pin en BAJO.</li>
+      <li>Las dos redes tienen que estar en el <b>mismo canal</b> (en el programa, <code>CANAL = 1</code>).</li>
+    </ul>
+  </div>
+
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Paso previo</strong> · <code>c2_ver_mac.ino</code><br><span class="nota">Muestra en el Monitor serie las dos direcciones MAC de la placa: la de estación y la de punto de acceso.</span></div>
+      <button class="boton sec copiar" type="button" data-objetivo="cod-mac">Copiar código</button>
+    </div>
+    <pre class="fuente" id="cod-mac"><code>/*
+  ==========================================================================
+  CLASE 2 - PASO PREVIO: ¿Cuál es la dirección MAC de mi placa?
+  NodeMCU V3 (ESP8266) - Placa en el IDE: &quot;NodeMCU 1.0 (ESP-12E Module)&quot;
+  ==========================================================================
+
+  Una dirección MAC es el &quot;número de documento&quot; de una placa de red:
+  6 bytes escritos en hexadecimal, por ejemplo 5C:CF:7F:12:3F:2A.
+
+  El ESP8266 tiene DOS: una para cuando trabaja como estación (STA, la
+  que se conecta a una red) y otra para cuando trabaja como punto de
+  acceso (AP, la que crea una red). Este programa muestra las dos en el
+  Monitor serie (115200 baudios) cada 3 segundos.
+
+  PREGUNTA PARA LA CLASE: ¿en qué se diferencian las dos MAC?
+  ==========================================================================
+*/
+
+#include &lt;ESP8266WiFi.h&gt;
+
+void setup() {
+  Serial.begin(115200);
+  delay(300);
+  WiFi.mode(WIFI_AP_STA);      // activa las dos &quot;caras&quot; de la placa
+}
+
+void loop() {
+  Serial.println();
+  Serial.println(F(&quot;=== Direcciones MAC de esta placa ===&quot;));
+  Serial.println(&quot;Estación (STA):        &quot; + WiFi.macAddress());
+  Serial.println(&quot;Punto de acceso (AP):  &quot; + WiFi.softAPmacAddress());
+  delay(3000);
+}
+</code></pre>
+  </div>
+</section>
+
+<!-- ============================ 2. RED ============================ -->
+<section class="bloque" id="red">
+  <div class="titulo"><span class="num">02</span><h2>Chat y LED entre dos placas</h2></div>
+  <p class="pregunta">Escribí en un celular y mirá el paquete viajar por el aire. Después alejá las placas, cambiá un canal o desemparejá una placa: ¿qué pasa con los mensajes y con la marca ✓ / ✗?</p>
+
+  <div class="controles-red">
+    <div class="control">
+      <label for="dist">Distancia entre placas <output id="dist-out">5 m</output></label>
+      <input type="range" id="dist" min="1" max="200" value="5">
+      <p class="nota">Valores ilustrativos: en el aula, medilo con las placas reales.</p>
+    </div>
+    <div class="control">
+      <label>Canal WiFi</label>
+      <div class="fila" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <span>Placa A <select id="canalA"><option>1</option><option>6</option><option>11</option></select></span>
+        <span>Placa B <select id="canalB"><option>1</option><option>6</option><option>11</option></select></span>
+      </div>
+    </div>
+    <div class="control">
+      <label>Emparejamiento</label>
+      <label class="interruptor" for="parA"><input type="checkbox" id="parA" checked> A tiene a B como pareja</label>
+      <label class="interruptor" for="parB"><input type="checkbox" id="parB" checked> B tiene a A como pareja</label>
+    </div>
+  </div>
+
+  <div class="red">
+    <div class="telefono" id="telA">
+      <div class="cab"><span>Celular 1 → <b>CHAT-3F2A</b> (A)</span><span class="placa-mini">LED <span class="led-azul" id="ledA"></span></span></div>
+      <div class="chatbox" id="chatA"></div>
+      <div class="envio"><input id="inA" maxlength="60" value="Hola, ¿me leés?" aria-label="Mensaje desde A"><button class="boton" data-enviar="A">Enviar</button></div>
+      <div class="botones-led">
+        <button data-led="A" data-cual="propio">Mi LED</button>
+        <button data-led="A" data-cual="remoto">LED de B</button>
+      </div>
+      <button class="boton sec" data-ping="A">Medir ida y vuelta</button>
+    </div>
+
+    <div class="aire" id="aire" aria-live="polite"><div class="rotulo-aire">AIRE · ESP-NOW</div></div>
+
+    <div class="telefono" id="telB">
+      <div class="cab"><span>Celular 2 → <b>CHAT-09B4</b> (B)</span><span class="placa-mini">LED <span class="led-azul" id="ledB"></span></span></div>
+      <div class="chatbox" id="chatB"></div>
+      <div class="envio"><input id="inB" maxlength="60" value="¡Te leo perfecto!" aria-label="Mensaje desde B"><button class="boton" data-enviar="B">Enviar</button></div>
+      <div class="botones-led">
+        <button data-led="B" data-cual="propio">Mi LED</button>
+        <button data-led="B" data-cual="remoto">LED de A</button>
+      </div>
+      <button class="boton sec" data-ping="B">Medir ida y vuelta</button>
+    </div>
+  </div>
+
+  <div class="bitacora" id="bitacora"></div>
+  <p class="idea"><strong>Para descubrir:</strong> desmarcá “B tiene a A como pareja” y mandá un mensaje desde A. El celular 1 dice <b>✓ llegó</b>, pero B no lo muestra. La confirmación la da la radio al recibir el paquete; después el programa de B lo descarta porque no viene de su pareja.</p>
+
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Programa principal</strong> · <code>clase02_espnow_chat.ino</code><br><span class="nota">El mismo programa para todas las placas: no hay que editar nada. Va junto con <code>pagina_web.h</code> en la misma carpeta.</span></div>
+      <button class="boton sec copiar" type="button" data-objetivo="cod-main">Copiar código</button>
+    </div>
+    <pre class="fuente" id="cod-main"><code>/*
+  ==========================================================================
+  CLASE 2 - ESP8266: ESP-NOW, chat y LED remoto
+  Programa principal (el mismo para TODAS las placas: no hay que editarlo)
+  NodeMCU V3 (ESP8266) - Placa en el IDE: &quot;NodeMCU 1.0 (ESP-12E Module)&quot;
+  ==========================================================================
+
+  QUÉ HACE
+    Cada placa hace DOS cosas al mismo tiempo:
+
+    1) Crea su propia red WiFi (punto de acceso) con una página web.
+       El celular se conecta a esa red y abre http://192.168.4.1
+
+    2) Habla por ESP-NOW con otra placa (su &quot;pareja&quot;), sin router.
+       Por ESP-NOW viajan: los mensajes del chat, las órdenes para el LED
+       y la medición del tiempo de ida y vuelta.
+
+        Celular 1 ──WiFi──&gt; Placa A &lt;──ESP-NOW──&gt; Placa B &lt;──WiFi── Celular 2
+
+  CÓMO SE EMPAREJAN LAS PLACAS (sin escribir ninguna MAC a mano)
+    - Cada placa anuncia &quot;¡acá estoy!&quot; cada 3 segundos, a todas (broadcast).
+    - La página muestra la lista de placas cercanas.
+    - Tocás &quot;Emparejar&quot; en la placa de tu compañero y su dirección MAC
+      queda guardada en la EEPROM: aunque se apague, la recuerda.
+    - Hay que emparejar desde LAS DOS placas (A con B, y B con A).
+
+  ARCHIVOS DE ESTE PROGRAMA
+    clase02_espnow_chat.ino  -&gt; este archivo: toda la lógica
+    pagina_web.h             -&gt; la página que ve el celular (HTML)
+
+  NOMBRE DE LA RED WIFI
+    Cada placa arma su nombre con el final de su MAC, por ejemplo
+    &quot;CHAT-3F2A&quot;. La clave es la de CLAVE_WIFI.
+  ==========================================================================
+*/
+
+#include &lt;ESP8266WiFi.h&gt;
+#include &lt;ESP8266WebServer.h&gt;
+#include &lt;espnow.h&gt;
+#include &lt;EEPROM.h&gt;
+#include &quot;pagina_web.h&quot;
+
+// ==========================================================================
+// 1. CONFIGURACIÓN
+// ==========================================================================
+const char*    CLAVE_WIFI        = &quot;robotica2026&quot;;  // mínimo 8 caracteres
+const uint8_t  CANAL             = 1;      // ¡el MISMO en todas las placas!
+const uint32_t INTERVALO_ANUNCIO = 3000;   // cada cuánto avisa &quot;acá estoy&quot; (ms)
+const uint32_t VECINA_VENCE      = 10000;  // sin anuncios por 10 s = ya no está
+
+// Dirección especial para enviar a TODAS las placas cercanas (broadcast)
+uint8_t MAC_TODAS[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+// ==========================================================================
+// 2. EL MENSAJE QUE VIAJA POR ESP-NOW
+//    Es una &quot;caja&quot; con lugares fijos. Las dos placas usan la misma caja,
+//    así cada una sabe dónde está cada dato. ESP-NOW admite hasta 250 bytes.
+// ==========================================================================
+enum TipoMensaje : uint8_t {
+  ANUNCIO    = 1,   // &quot;acá estoy&quot; (a todas)
+  CHAT       = 2,   // un mensaje de texto
+  LED_ORDEN  = 3,   // &quot;prendé / apagá tu LED&quot;
+  LED_ESTADO = 4,   // &quot;mi LED está así&quot;
+  PING       = 5,   // para medir el tiempo de ida y vuelta
+  PONG       = 6    // la respuesta al PING
+};
+
+struct Mensaje {
+  uint8_t  tipo;              // uno de los de arriba
+  char     nombrePlaca[12];   // por ejemplo &quot;CHAT-3F2A&quot;
+  char     apodo[16];         // quién escribió en el chat
+  char     texto[100];        // el mensaje del chat
+  uint8_t  led;               // 0 = apagado, 1 = encendido
+  uint32_t marcaTiempo;       // para el PING / PONG (en microsegundos)
+};
+// El compilador agrega 2 bytes de relleno antes de marcaTiempo: en total, 136 bytes.
+static_assert(sizeof(Mensaje) == 136, &quot;El mensaje tiene que medir 136 bytes&quot;);
+
+// ==========================================================================
+// 3. ESTADO DE LA PLACA
+// ==========================================================================
+ESP8266WebServer servidor(80);
+String nombrePlaca;              // &quot;CHAT-XXXX&quot;
+
+// --- La pareja ---
+bool    hayPareja = false;
+uint8_t macPareja[6];
+char    nombrePareja[12] = &quot;&quot;;
+
+// --- Los LED ---
+bool ledPropio = false;          // el LED azul de esta placa
+int  ledRemoto = -1;             // el de la pareja: -1 = todavía no sabemos
+
+// --- Placas cercanas (las que se anunciaron) ---
+struct Vecina {
+  uint8_t  mac[6];
+  char     nombre[12];
+  uint32_t vistaEn;              // millis() del último anuncio
+  bool     usada;
+};
+const int MAX_VECINAS = 8;
+Vecina vecinas[MAX_VECINAS];
+
+// --- El chat: guardamos las últimas 15 líneas ---
+struct LineaChat {
+  uint32_t id;
+  bool     mia;                  // true = la escribí yo; false = vino de la pareja
+  char     apodo[16];
+  char     texto[100];
+  int8_t   entregado;            // -1 = esperando, 1 = llegó, 0 = no llegó
+};
+const int MAX_LINEAS = 15;
+LineaChat chat[MAX_LINEAS];
+uint32_t  proximoIdChat = 1;
+
+// --- Mediciones ---
+uint32_t enviados = 0, entregados = 0, fallidos = 0;
+long     idaVueltaUs = -1;       // último tiempo medido (-1 = sin medir)
+
+// ==========================================================================
+// 4. AYUDANTES: MAC, TEXTO Y LED
+// ==========================================================================
+String macATexto(const uint8_t* mac) {
+  char t[18];
+  snprintf(t, sizeof(t), &quot;%02X:%02X:%02X:%02X:%02X:%02X&quot;,
+           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  return String(t);
+}
+
+// Convierte &quot;AA:BB:CC:DD:EE:FF&quot; en 6 bytes. Devuelve false si está mal escrita.
+bool textoAMac(const String&amp; t, uint8_t* mac) {
+  if (t.length() != 17) return false;
+  for (int i = 0; i &lt; 6; i++) {
+    String par = t.substring(i * 3, i * 3 + 2);
+    char* fin;
+    long v = strtol(par.c_str(), &amp;fin, 16);
+    if (*fin != &#x27;\0&#x27;) return false;
+    mac[i] = (uint8_t)v;
+  }
+  return true;
+}
+
+bool mismaMac(const uint8_t* a, const uint8_t* b) {
+  return memcmp(a, b, 6) == 0;
+}
+
+// Copia un texto sin pasarse del tamaño y sin cortar una letra con tilde
+// por la mitad (en UTF-8, &quot;á&quot; ocupa 2 bytes).
+void copiarTexto(char* destino, size_t tamano, const String&amp; origen) {
+  strncpy(destino, origen.c_str(), tamano - 1);
+  destino[tamano - 1] = &#x27;\0&#x27;;
+  if (origen.length() &gt;= tamano) {                     // hubo que cortar
+    size_t n = strlen(destino);
+    while (n &gt; 0 &amp;&amp; (destino[n - 1] &amp; 0xC0) == 0x80) n--;   // bytes de continuación
+    if (n &gt; 0 &amp;&amp; (uint8_t)destino[n - 1] &gt;= 0xC0) n--;      // inicio de letra incompleta
+    destino[n] = &#x27;\0&#x27;;
+  }
+}
+
+// El LED_BUILTIN del NodeMCU enciende con el pin en BAJO (lógica invertida)
+void escribirLedPropio(bool encendido) {
+  ledPropio = encendido;
+  digitalWrite(LED_BUILTIN, encendido ? LOW : HIGH);
+}
+
+// ==========================================================================
+// 5. EEPROM: guardar y recuperar la pareja
+//    Posición 0: una marca (0xA5) que indica &quot;hay una pareja guardada&quot;
+//    Posiciones 1 a 6: los 6 bytes de la MAC de la pareja
+// ==========================================================================
+const int     EEPROM_TAMANO = 8;
+const uint8_t EEPROM_MARCA  = 0xA5;
+
+void guardarParejaEnEEPROM() {
+  EEPROM.write(0, EEPROM_MARCA);
+  for (int i = 0; i &lt; 6; i++) EEPROM.write(1 + i, macPareja[i]);
+  EEPROM.commit();                       // en el ESP8266 hay que confirmar
+}
+
+bool leerParejaDeEEPROM() {
+  if (EEPROM.read(0) != EEPROM_MARCA) return false;
+  for (int i = 0; i &lt; 6; i++) macPareja[i] = EEPROM.read(1 + i);
+  return true;
+}
+
+void borrarParejaDeEEPROM() {
+  EEPROM.write(0, 0x00);
+  EEPROM.commit();
+}
+
+// ==========================================================================
+// 6. ENVIAR POR ESP-NOW
+// ==========================================================================
+// Para saber, cuando llegue la confirmación, a qué línea del chat corresponde
+uint32_t idChatEsperandoConfirmacion = 0;
+
+// Lo que avisa ESP-NOW después de cada envío (se procesa en el loop)
+volatile bool   hayResultadoEnvio = false;
+volatile bool   ultimoEnvioOk     = false;
+
+Mensaje mensajeNuevo(TipoMensaje tipo) {
+  Mensaje m;
+  memset(&amp;m, 0, sizeof(m));
+  m.tipo = tipo;
+  copiarTexto(m.nombrePlaca, sizeof(m.nombrePlaca), nombrePlaca);
+  return m;
+}
+
+bool enviarAPareja(Mensaje&amp; m) {
+  if (!hayPareja) return false;
+  enviados++;
+  esp_now_send(macPareja, (uint8_t*)&amp;m, sizeof(m));
+  return true;
+}
+
+void enviarAnuncio() {
+  Mensaje m = mensajeNuevo(ANUNCIO);
+  esp_now_send(MAC_TODAS, (uint8_t*)&amp;m, sizeof(m));   // broadcast: no cuenta como envío a la pareja
+}
+
+void enviarEstadoDeMiLed() {
+  Mensaje m = mensajeNuevo(LED_ESTADO);
+  m.led = ledPropio ? 1 : 0;
+  enviarAPareja(m);
+}
+
+// ==========================================================================
+// 7. RECIBIR POR ESP-NOW
+//    ESP-NOW llama a estas funciones &quot;por su cuenta&quot;, en cualquier momento.
+//    Por eso solo copiamos los datos a una cola y los procesamos en el loop.
+// ==========================================================================
+struct Recibido {
+  uint8_t mac[6];
+  Mensaje m;
+};
+const int TAMANO_COLA = 6;
+Recibido cola[TAMANO_COLA];
+volatile uint8_t colaInicio = 0, colaFin = 0;
+
+void alRecibir(uint8_t* mac, uint8_t* datos, uint8_t largo) {
+  if (largo != sizeof(Mensaje)) return;              // no es de este programa
+  uint8_t siguiente = (colaFin + 1) % TAMANO_COLA;
+  if (siguiente == colaInicio) return;               // cola llena: se pierde
+  memcpy(cola[colaFin].mac, mac, 6);
+  memcpy(&amp;cola[colaFin].m, datos, sizeof(Mensaje));
+  colaFin = siguiente;
+}
+
+void alTerminarEnvio(uint8_t* mac, uint8_t estado) {
+  if (mismaMac(mac, MAC_TODAS)) return;              // los broadcast no se confirman
+  ultimoEnvioOk     = (estado == 0);                 // 0 = la otra placa confirmó
+  hayResultadoEnvio = true;
+}
+
+// ==========================================================================
+// 8. CHAT Y PLACAS CERCANAS
+// ==========================================================================
+LineaChat* agregarLineaChat(bool mia, const char* apodo, const char* texto) {
+  LineaChat&amp; l = chat[(proximoIdChat - 1) % MAX_LINEAS];  // pisa la más vieja
+  l.id = proximoIdChat++;
+  l.mia = mia;
+  copiarTexto(l.apodo, sizeof(l.apodo), String(apodo));
+  copiarTexto(l.texto, sizeof(l.texto), String(texto));
+  l.entregado = mia ? -1 : 1;
+  return &amp;l;
+}
+
+void anotarVecina(const uint8_t* mac, const char* nombre) {
+  int libre = -1;
+  for (int i = 0; i &lt; MAX_VECINAS; i++) {
+    if (vecinas[i].usada &amp;&amp; mismaMac(vecinas[i].mac, mac)) {
+      vecinas[i].vistaEn = millis();
+      return;
+    }
+    if (!vecinas[i].usada &amp;&amp; libre &lt; 0) libre = i;
+  }
+  if (libre &lt; 0) return;                             // lista llena
+  memcpy(vecinas[libre].mac, mac, 6);
+  strncpy(vecinas[libre].nombre, nombre, sizeof(vecinas[libre].nombre) - 1);
+  vecinas[libre].vistaEn = millis();
+  vecinas[libre].usada = true;
+}
+
+// ==========================================================================
+// 9. QUÉ HACER CON CADA MENSAJE QUE LLEGA
+// ==========================================================================
+void procesarMensaje(const uint8_t* mac, Mensaje&amp; m) {
+  m.nombrePlaca[sizeof(m.nombrePlaca) - 1] = &#x27;\0&#x27;;   // por seguridad
+  m.apodo[sizeof(m.apodo) - 1] = &#x27;\0&#x27;;
+  m.texto[sizeof(m.texto) - 1] = &#x27;\0&#x27;;
+
+  if (m.tipo == ANUNCIO) {
+    anotarVecina(mac, m.nombrePlaca);
+    if (hayPareja &amp;&amp; mismaMac(mac, macPareja)) {
+      strncpy(nombrePareja, m.nombrePlaca, sizeof(nombrePareja) - 1);
+    }
+    return;
+  }
+
+  // El resto de los mensajes solo se aceptan de la pareja.
+  // Así, en un aula con varias placas, nadie se mete en una conversación ajena.
+  if (!hayPareja || !mismaMac(mac, macPareja)) return;
+
+  switch (m.tipo) {
+    case CHAT:
+      agregarLineaChat(false, m.apodo, m.texto);
+      Serial.printf(&quot;[CHAT] %s: %s\n&quot;, m.apodo, m.texto);
+      break;
+
+    case LED_ORDEN:
+      escribirLedPropio(m.led == 1);
+      Serial.printf(&quot;[LED] La otra placa %s mi LED\n&quot;, m.led ? &quot;encendió&quot; : &quot;apagó&quot;);
+      enviarEstadoDeMiLed();                          // avisamos cómo quedó
+      break;
+
+    case LED_ESTADO:
+      ledRemoto = m.led;
+      break;
+
+    case PING: {
+      Mensaje respuesta = mensajeNuevo(PONG);
+      respuesta.marcaTiempo = m.marcaTiempo;          // devolvemos la misma marca
+      enviarAPareja(respuesta);
+      break;
+    }
+
+    case PONG:
+      idaVueltaUs = (long)(micros() - m.marcaTiempo);
+      Serial.printf(&quot;[PING] Ida y vuelta: %ld us\n&quot;, idaVueltaUs);
+      break;
+  }
+}
+
+// ==========================================================================
+// 10. EMPAREJAR Y OLVIDAR
+// ==========================================================================
+void activarPareja(const uint8_t* mac) {
+  memcpy(macPareja, mac, 6);
+  hayPareja = true;
+  nombrePareja[0] = &#x27;\0&#x27;;
+  ledRemoto = -1;
+  if (!esp_now_is_peer_exist(macPareja)) {
+    esp_now_add_peer(macPareja, ESP_NOW_ROLE_COMBO, CANAL, NULL, 0);
+  }
+  for (int i = 0; i &lt; MAX_VECINAS; i++) {             // si ya la conocíamos, copiamos su nombre
+    if (vecinas[i].usada &amp;&amp; mismaMac(vecinas[i].mac, mac)) {
+      strncpy(nombrePareja, vecinas[i].nombre, sizeof(nombrePareja) - 1);
+    }
+  }
+  Serial.println(&quot;Pareja: &quot; + macATexto(macPareja));
+}
+
+void olvidarPareja() {
+  if (hayPareja) esp_now_del_peer(macPareja);
+  hayPareja = false;
+  nombrePareja[0] = &#x27;\0&#x27;;
+  ledRemoto = -1;
+  borrarParejaDeEEPROM();
+}
+
+// ==========================================================================
+// 11. PÁGINA WEB: lo que pide el celular
+// ==========================================================================
+// Agrega un texto a un JSON escapando comillas y barras
+void agregarTextoJson(String&amp; json, const char* texto) {
+  json += &#x27;&quot;&#x27;;
+  for (const char* p = texto; *p; p++) {
+    char c = *p;
+    if (c == &#x27;&quot;&#x27; || c == &#x27;\\&#x27;) { json += &#x27;\\&#x27;; json += c; }
+    else if ((uint8_t)c &lt; 0x20) { json += &#x27; &#x27;; }
+    else json += c;
+  }
+  json += &#x27;&quot;&#x27;;
+}
+
+void responderEstado() {
+  String j;
+  j.reserve(3500);
+  j += &quot;{\&quot;placa\&quot;:&quot;;      agregarTextoJson(j, nombrePlaca.c_str());
+  j += &quot;,\&quot;macAP\&quot;:\&quot;&quot;;    j += WiFi.softAPmacAddress();
+  j += &quot;\&quot;,\&quot;macSTA\&quot;:\&quot;&quot;; j += WiFi.macAddress();
+  j += &quot;\&quot;,\&quot;canal\&quot;:&quot;;    j += CANAL;
+
+  j += &quot;,\&quot;pareja\&quot;:&quot;;
+  if (hayPareja) {
+    j += &quot;{\&quot;mac\&quot;:\&quot;&quot;;    j += macATexto(macPareja);
+    j += &quot;\&quot;,\&quot;nombre\&quot;:&quot;; agregarTextoJson(j, nombrePareja);
+    j += &quot;}&quot;;
+  } else {
+    j += &quot;null&quot;;
+  }
+
+  j += &quot;,\&quot;vecinas\&quot;:[&quot;;
+  bool primera = true;
+  for (int i = 0; i &lt; MAX_VECINAS; i++) {
+    if (!vecinas[i].usada) continue;
+    if (millis() - vecinas[i].vistaEn &gt; VECINA_VENCE) { vecinas[i].usada = false; continue; }
+    if (!primera) j += &#x27;,&#x27;;
+    primera = false;
+    j += &quot;{\&quot;mac\&quot;:\&quot;&quot;;    j += macATexto(vecinas[i].mac);
+    j += &quot;\&quot;,\&quot;nombre\&quot;:&quot;; agregarTextoJson(j, vecinas[i].nombre);
+    j += &quot;,\&quot;hace\&quot;:&quot;;     j += (millis() - vecinas[i].vistaEn) / 1000;
+    j += &quot;}&quot;;
+  }
+  j += &quot;]&quot;;
+
+  j += &quot;,\&quot;ledPropio\&quot;:&quot;;   j += ledPropio ? 1 : 0;
+  j += &quot;,\&quot;ledRemoto\&quot;:&quot;;   j += ledRemoto;
+  j += &quot;,\&quot;enviados\&quot;:&quot;;    j += enviados;
+  j += &quot;,\&quot;entregados\&quot;:&quot;;  j += entregados;
+  j += &quot;,\&quot;fallidos\&quot;:&quot;;    j += fallidos;
+  j += &quot;,\&quot;idaVueltaUs\&quot;:&quot;; j += idaVueltaUs;
+
+  j += &quot;,\&quot;chat\&quot;:[&quot;;
+  primera = true;
+  uint32_t desde = (proximoIdChat &gt; MAX_LINEAS) ? proximoIdChat - MAX_LINEAS : 1;
+  for (uint32_t id = desde; id &lt; proximoIdChat; id++) {
+    LineaChat&amp; l = chat[(id - 1) % MAX_LINEAS];
+    if (!primera) j += &#x27;,&#x27;;
+    primera = false;
+    j += &quot;{\&quot;id\&quot;:&quot;;       j += l.id;
+    j += &quot;,\&quot;mia\&quot;:&quot;;      j += l.mia ? &quot;true&quot; : &quot;false&quot;;
+    j += &quot;,\&quot;apodo\&quot;:&quot;;    agregarTextoJson(j, l.apodo);
+    j += &quot;,\&quot;texto\&quot;:&quot;;    agregarTextoJson(j, l.texto);
+    j += &quot;,\&quot;entregado\&quot;:&quot;; j += l.entregado;
+    j += &quot;}&quot;;
+  }
+  j += &quot;]}&quot;;
+
+  servidor.sendHeader(&quot;Cache-Control&quot;, &quot;no-store&quot;);
+  servidor.send(200, &quot;application/json&quot;, j);
+}
+
+void responderPagina() {
+  servidor.send_P(200, &quot;text/html&quot;, PAGINA_WEB);
+}
+
+void responderEnviar() {
+  String texto = servidor.arg(&quot;texto&quot;);
+  String apodo = servidor.arg(&quot;apodo&quot;);
+  texto.trim();
+  apodo.trim();
+  if (apodo.length() == 0) apodo = nombrePlaca;
+  if (texto.length() == 0 || !hayPareja) { responderEstado(); return; }
+
+  Mensaje m = mensajeNuevo(CHAT);
+  copiarTexto(m.apodo, sizeof(m.apodo), apodo);
+  copiarTexto(m.texto, sizeof(m.texto), texto);
+
+  LineaChat* l = agregarLineaChat(true, m.apodo, m.texto);
+  idChatEsperandoConfirmacion = l-&gt;id;
+  enviarAPareja(m);
+  responderEstado();
+}
+
+void responderLed() {
+  String cual = servidor.arg(&quot;cual&quot;);
+  bool encender = servidor.arg(&quot;estado&quot;) == &quot;1&quot;;
+
+  if (cual == &quot;propio&quot;) {
+    escribirLedPropio(encender);
+    enviarEstadoDeMiLed();                       // la pareja se entera
+  } else if (cual == &quot;remoto&quot;) {
+    Mensaje m = mensajeNuevo(LED_ORDEN);
+    m.led = encender ? 1 : 0;
+    enviarAPareja(m);
+  }
+  responderEstado();
+}
+
+void responderEmparejar() {
+  uint8_t mac[6];
+  if (textoAMac(servidor.arg(&quot;mac&quot;), mac)) {
+    if (hayPareja) esp_now_del_peer(macPareja);
+    activarPareja(mac);
+    guardarParejaEnEEPROM();
+  }
+  responderEstado();
+}
+
+void responderOlvidar() {
+  olvidarPareja();
+  responderEstado();
+}
+
+void responderPing() {
+  Mensaje m = mensajeNuevo(PING);
+  m.marcaTiempo = micros();
+  enviarAPareja(m);
+  responderEstado();
+}
+
+// ==========================================================================
+// 12. SETUP
+// ==========================================================================
+void setup() {
+  Serial.begin(115200);
+  delay(300);
+  Serial.println();
+  Serial.println(F(&quot;=== Clase 2 - ESP-NOW, chat y LED remoto ===&quot;));
+
+  pinMode(LED_BUILTIN, OUTPUT);
+  escribirLedPropio(false);
+  EEPROM.begin(EEPROM_TAMANO);
+
+  // Nombre de la placa a partir de su MAC: &quot;CHAT-&quot; + los últimos 4 dígitos
+  uint8_t mac[6];
+  WiFi.macAddress(mac);
+  char nombre[12];
+  snprintf(nombre, sizeof(nombre), &quot;CHAT-%02X%02X&quot;, mac[4], mac[5]);
+  nombrePlaca = nombre;
+
+  // WiFi: punto de acceso (para el celular) + estación (la usa ESP-NOW)
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.disconnect();                       // la estación no se conecta a ningún router
+  WiFi.softAP(nombrePlaca.c_str(), CLAVE_WIFI, CANAL);
+
+  Serial.println(&quot;Red WiFi: &quot; + nombrePlaca + &quot;  clave: &quot; + String(CLAVE_WIFI));
+  Serial.println(&quot;Página:   http://192.168.4.1&quot;);
+  Serial.println(&quot;MAC de estación (STA):        &quot; + WiFi.macAddress());
+  Serial.println(&quot;MAC de punto de acceso (AP):  &quot; + WiFi.softAPmacAddress());
+
+  // ESP-NOW
+  if (esp_now_init() != 0) {
+    Serial.println(F(&quot;ERROR: no se pudo iniciar ESP-NOW&quot;));
+  }
+  esp_now_set_self_role(ESP_NOW_ROLE_COMBO);     // puede enviar y recibir
+  esp_now_register_recv_cb(alRecibir);
+  esp_now_register_send_cb(alTerminarEnvio);
+  esp_now_add_peer(MAC_TODAS, ESP_NOW_ROLE_COMBO, CANAL, NULL, 0);
+
+  // ¿Había una pareja guardada?
+  uint8_t guardada[6];
+  if (leerParejaDeEEPROM()) {
+    memcpy(guardada, macPareja, 6);
+    activarPareja(guardada);
+    Serial.println(F(&quot;Pareja recuperada de la EEPROM.&quot;));
+  } else {
+    Serial.println(F(&quot;Sin pareja: emparejá desde la página.&quot;));
+  }
+
+  // Página web
+  servidor.on(&quot;/&quot;,          responderPagina);
+  servidor.on(&quot;/estado&quot;,    responderEstado);
+  servidor.on(&quot;/enviar&quot;,    responderEnviar);
+  servidor.on(&quot;/led&quot;,       responderLed);
+  servidor.on(&quot;/emparejar&quot;, responderEmparejar);
+  servidor.on(&quot;/olvidar&quot;,   responderOlvidar);
+  servidor.on(&quot;/ping&quot;,      responderPing);
+  servidor.begin();
+}
+
+// ==========================================================================
+// 13. LOOP
+// ==========================================================================
+uint32_t ultimoAnuncio = 0;
+
+void loop() {
+  servidor.handleClient();
+
+  // a) Procesar los mensajes que llegaron por ESP-NOW
+  while (colaInicio != colaFin) {
+    procesarMensaje(cola[colaInicio].mac, cola[colaInicio].m);
+    colaInicio = (colaInicio + 1) % TAMANO_COLA;
+  }
+
+  // b) ¿Llegó la confirmación del último envío a la pareja?
+  if (hayResultadoEnvio) {
+    hayResultadoEnvio = false;
+    if (ultimoEnvioOk) entregados++; else fallidos++;
+    if (idChatEsperandoConfirmacion != 0) {
+      LineaChat&amp; l = chat[(idChatEsperandoConfirmacion - 1) % MAX_LINEAS];
+      if (l.id == idChatEsperandoConfirmacion) l.entregado = ultimoEnvioOk ? 1 : 0;
+      idChatEsperandoConfirmacion = 0;
+    }
+  }
+
+  // c) Anunciarse a todas las placas cada 3 segundos
+  if (millis() - ultimoAnuncio &gt;= INTERVALO_ANUNCIO) {
+    ultimoAnuncio = millis();
+    enviarAnuncio();
+  }
+}
+</code></pre>
+  </div>
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Página del celular</strong> · <code>pagina_web.h</code><br><span class="nota">En el IDE: menú de la pestaña (▾) → Nueva pestaña → <code>pagina_web.h</code>, y pegar este código.</span></div>
+      <button class="boton sec copiar" type="button" data-objetivo="cod-pagina">Copiar código</button>
+    </div>
+    <pre class="fuente" id="cod-pagina"><code>/*
+  ==========================================================================
+  pagina_web.h - La página que ve el celular (Clase 2)
+  ==========================================================================
+  Es HTML + CSS + JavaScript. La placa la guarda en la memoria flash
+  (PROGMEM) y la envía cuando el celular abre http://192.168.4.1
+
+  Cada segundo, la página le pide a la placa su estado (/estado) y
+  redibuja todo: pareja, placas cercanas, LED, chat y mediciones.
+
+  Las órdenes se mandan con direcciones simples:
+    /enviar?apodo=Ana&amp;texto=Hola      -&gt; manda un mensaje de chat
+    /led?cual=propio&amp;estado=1         -&gt; prende el LED de esta placa
+    /led?cual=remoto&amp;estado=0         -&gt; apaga el LED de la otra placa
+    /emparejar?mac=AA:BB:CC:DD:EE:FF  -&gt; elige la pareja y la guarda
+    /olvidar                          -&gt; borra la pareja
+    /ping                             -&gt; mide el tiempo de ida y vuelta
+  ==========================================================================
+*/
+#pragma once
+
+const char PAGINA_WEB[] PROGMEM = R&quot;rawliteral(
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;es&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;Chat ESP-NOW&lt;/title&gt;
+&lt;style&gt;
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; background: #111; color: #eee;
+         font-family: Arial, Helvetica, sans-serif; max-width: 560px; margin: auto; }
+  h1 { font-size: 1.25em; margin: 4px 0; }
+  h2 { font-size: 1em; margin: 0 0 8px; color: #9cf; }
+  .sub { color: #999; font-size: .85em; }
+  .tarjeta { background: #1b1f22; border: 1px solid #2c3236; border-radius: 12px;
+             padding: 12px; margin-top: 12px; }
+  .fila { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .mac { font-family: monospace; font-size: .9em; color: #fc6; }
+  button { border: none; border-radius: 8px; padding: 9px 12px; font-weight: bold;
+           background: #2a7fb8; color: #fff; font-size: .95em; }
+  button.gris { background: #444; }
+  button:disabled { opacity: .4; }
+  .ok { color: #6d6; } .mal { color: #f77; } .espera { color: #fc6; }
+  .leds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .led { text-align: center; background: #15191b; border-radius: 10px; padding: 10px; }
+  .foco { width: 46px; height: 46px; border-radius: 50%; margin: 6px auto;
+          background: #222b33; border: 3px solid #333; }
+  .foco.on { background: #3aa0ff; box-shadow: 0 0 22px #3aa0ff; border-color: #6bf; }
+  #mensajes { height: 230px; overflow-y: auto; background: #0e1113; border-radius: 8px;
+              padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+  .msj { max-width: 82%; padding: 6px 9px; border-radius: 10px; font-size: .95em;
+         word-wrap: break-word; }
+  .msj .quien { font-size: .75em; color: #aaa; }
+  .msj.mia { align-self: flex-end; background: #1f4e73; }
+  .msj.suya { align-self: flex-start; background: #333a40; }
+  input { width: 100%; padding: 9px; border-radius: 8px; border: 1px solid #444;
+          background: #0e1113; color: #eee; font-size: 1em; }
+  .grilla { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; }
+  .grilla div { background: #15191b; border-radius: 8px; padding: 6px; }
+  .grilla b { display: block; font-size: 1.2em; font-family: monospace; }
+  .vecina { display: flex; justify-content: space-between; align-items: center;
+            background: #15191b; border-radius: 8px; padding: 6px 8px; margin-top: 6px; }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1 id=&quot;titulo&quot;&gt;Chat ESP-NOW&lt;/h1&gt;
+  &lt;div class=&quot;sub&quot; id=&quot;red&quot;&gt;Cargando...&lt;/div&gt;
+
+  &lt;!-- 1. PAREJA --&gt;
+  &lt;div class=&quot;tarjeta&quot;&gt;
+    &lt;h2&gt;1. Pareja&lt;/h2&gt;
+    &lt;div id=&quot;pareja&quot;&gt;...&lt;/div&gt;
+    &lt;div class=&quot;sub&quot; style=&quot;margin-top:8px&quot;&gt;Placas cercanas (se anuncian cada 3 s):&lt;/div&gt;
+    &lt;div id=&quot;vecinas&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;sub&quot; style=&quot;margin-top:8px&quot;&gt;
+      Mis MAC: estación &lt;span class=&quot;mac&quot; id=&quot;macSTA&quot;&gt;&lt;/span&gt; · punto de acceso &lt;span class=&quot;mac&quot; id=&quot;macAP&quot;&gt;&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 2. LED --&gt;
+  &lt;div class=&quot;tarjeta&quot;&gt;
+    &lt;h2&gt;2. LED&lt;/h2&gt;
+    &lt;div class=&quot;leds&quot;&gt;
+      &lt;div class=&quot;led&quot;&gt;
+        &lt;div&gt;Mi LED&lt;/div&gt;
+        &lt;div class=&quot;foco&quot; id=&quot;focoPropio&quot;&gt;&lt;/div&gt;
+        &lt;button id=&quot;botonPropio&quot; onclick=&quot;cambiarLed(&#x27;propio&#x27;)&quot;&gt;Encender&lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;led&quot;&gt;
+        &lt;div&gt;LED de la otra placa&lt;/div&gt;
+        &lt;div class=&quot;foco&quot; id=&quot;focoRemoto&quot;&gt;&lt;/div&gt;
+        &lt;button id=&quot;botonRemoto&quot; onclick=&quot;cambiarLed(&#x27;remoto&#x27;)&quot;&gt;Encender&lt;/button&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 3. CHAT --&gt;
+  &lt;div class=&quot;tarjeta&quot;&gt;
+    &lt;h2&gt;3. Chat&lt;/h2&gt;
+    &lt;div id=&quot;mensajes&quot;&gt;&lt;/div&gt;
+    &lt;div style=&quot;margin-top:8px&quot;&gt;&lt;input id=&quot;apodo&quot; maxlength=&quot;15&quot; placeholder=&quot;Tu nombre&quot;&gt;&lt;/div&gt;
+    &lt;div class=&quot;fila&quot; style=&quot;margin-top:6px; flex-wrap:nowrap&quot;&gt;
+      &lt;input id=&quot;texto&quot; maxlength=&quot;60&quot; placeholder=&quot;Escribí un mensaje&quot;&gt;
+      &lt;button onclick=&quot;enviar()&quot;&gt;Enviar&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;!-- 4. MEDICIONES --&gt;
+  &lt;div class=&quot;tarjeta&quot;&gt;
+    &lt;h2&gt;4. Mediciones&lt;/h2&gt;
+    &lt;div class=&quot;grilla&quot;&gt;
+      &lt;div&gt;Enviados&lt;b id=&quot;enviados&quot;&gt;0&lt;/b&gt;&lt;/div&gt;
+      &lt;div&gt;Llegaron&lt;b id=&quot;entregados&quot;&gt;0&lt;/b&gt;&lt;/div&gt;
+      &lt;div&gt;No llegaron&lt;b id=&quot;fallidos&quot;&gt;0&lt;/b&gt;&lt;/div&gt;
+      &lt;div&gt;% que llega&lt;b id=&quot;porcentaje&quot;&gt;-&lt;/b&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;fila&quot; style=&quot;margin-top:8px&quot;&gt;
+      &lt;button onclick=&quot;pedir(&#x27;/ping&#x27;)&quot;&gt;Medir ida y vuelta&lt;/button&gt;
+      &lt;span&gt;Último: &lt;b id=&quot;idaVuelta&quot;&gt;-&lt;/b&gt;&lt;/span&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+&lt;script&gt;
+  var estado = null;
+  var ultimoIdChat = 0;
+
+  // Guarda el apodo en el celular para no escribirlo cada vez
+  try { document.getElementById(&#x27;apodo&#x27;).value = localStorage.getItem(&#x27;apodo&#x27;) || &#x27;&#x27;; } catch (e) {}
+
+  function pedir(url) {
+    return fetch(url).then(function (r) { return r.json(); }).then(mostrar)
+      .catch(function () { document.getElementById(&#x27;red&#x27;).textContent = &#x27;Sin conexión con la placa&#x27;; });
+  }
+
+  function mostrar(e) {
+    estado = e;
+    document.getElementById(&#x27;titulo&#x27;).textContent = e.placa;
+    document.getElementById(&#x27;red&#x27;).textContent = &#x27;Red WiFi &#x27; + e.placa + &#x27; · canal &#x27; + e.canal;
+    document.getElementById(&#x27;macSTA&#x27;).textContent = e.macSTA;
+    document.getElementById(&#x27;macAP&#x27;).textContent = e.macAP;
+
+    // Pareja
+    var p = document.getElementById(&#x27;pareja&#x27;);
+    if (e.pareja) {
+      p.innerHTML = &#x27;&#x27;;
+      var t = document.createElement(&#x27;div&#x27;);
+      t.innerHTML = &#x27;Emparejada con &lt;b&gt;&lt;/b&gt; &lt;span class=&quot;mac&quot;&gt;&lt;/span&gt;&#x27;;
+      t.querySelector(&#x27;b&#x27;).textContent = e.pareja.nombre || &#x27;(sin anuncio todavía)&#x27;;
+      t.querySelector(&#x27;.mac&#x27;).textContent = e.pareja.mac;
+      var b = document.createElement(&#x27;button&#x27;);
+      b.className = &#x27;gris&#x27;; b.textContent = &#x27;Olvidar pareja&#x27;; b.style.marginTop = &#x27;6px&#x27;;
+      b.onclick = function () { pedir(&#x27;/olvidar&#x27;); };
+      p.appendChild(t); p.appendChild(b);
+    } else {
+      p.innerHTML = &#x27;&lt;span class=&quot;espera&quot;&gt;Sin pareja. Elegí la placa de tu compañero en la lista.&lt;/span&gt;&#x27;;
+    }
+
+    // Placas cercanas
+    var v = document.getElementById(&#x27;vecinas&#x27;);
+    v.innerHTML = &#x27;&#x27;;
+    if (e.vecinas.length === 0) v.innerHTML = &#x27;&lt;div class=&quot;sub&quot;&gt;Ninguna todavía...&lt;/div&gt;&#x27;;
+    e.vecinas.forEach(function (x) {
+      var fila = document.createElement(&#x27;div&#x27;);
+      fila.className = &#x27;vecina&#x27;;
+      var info = document.createElement(&#x27;div&#x27;);
+      info.innerHTML = &#x27;&lt;b&gt;&lt;/b&gt;&lt;br&gt;&lt;span class=&quot;mac&quot;&gt;&lt;/span&gt;&#x27;;
+      info.querySelector(&#x27;b&#x27;).textContent = x.nombre;
+      info.querySelector(&#x27;.mac&#x27;).textContent = x.mac;
+      var b = document.createElement(&#x27;button&#x27;);
+      var esPareja = e.pareja &amp;&amp; e.pareja.mac === x.mac;
+      b.textContent = esPareja ? &#x27;Es mi pareja&#x27; : &#x27;Emparejar&#x27;;
+      b.disabled = esPareja;
+      b.onclick = function () { pedir(&#x27;/emparejar?mac=&#x27; + x.mac); };
+      fila.appendChild(info); fila.appendChild(b);
+      v.appendChild(fila);
+    });
+
+    // LED
+    dibujarLed(&#x27;Propio&#x27;, e.ledPropio === 1, true);
+    dibujarLed(&#x27;Remoto&#x27;, e.ledRemoto === 1, e.pareja !== null);
+    if (e.ledRemoto === -1) document.getElementById(&#x27;botonRemoto&#x27;).textContent = e.pareja ? &#x27;Encender&#x27; : &#x27;Sin pareja&#x27;;
+
+    // Chat
+    var caja = document.getElementById(&#x27;mensajes&#x27;);
+    var abajo = caja.scrollTop + caja.clientHeight &gt;= caja.scrollHeight - 10;
+    caja.innerHTML = &#x27;&#x27;;
+    e.chat.forEach(function (m) {
+      var d = document.createElement(&#x27;div&#x27;);
+      d.className = &#x27;msj &#x27; + (m.mia ? &#x27;mia&#x27; : &#x27;suya&#x27;);
+      var q = document.createElement(&#x27;div&#x27;);
+      q.className = &#x27;quien&#x27;;
+      var marca = &#x27;&#x27;;
+      if (m.mia) marca = m.entregado === 1 ? &#x27; ✓ llegó&#x27; : (m.entregado === 0 ? &#x27; ✗ no llegó&#x27; : &#x27; … enviando&#x27;);
+      q.textContent = m.apodo + marca;
+      if (m.mia) q.className += m.entregado === 1 ? &#x27; ok&#x27; : (m.entregado === 0 ? &#x27; mal&#x27; : &#x27; espera&#x27;);
+      var t = document.createElement(&#x27;div&#x27;);
+      t.textContent = m.texto;
+      d.appendChild(q); d.appendChild(t);
+      caja.appendChild(d);
+    });
+    var ultimo = e.chat.length ? e.chat[e.chat.length - 1].id : 0;
+    if (abajo || ultimo !== ultimoIdChat) caja.scrollTop = caja.scrollHeight;
+    ultimoIdChat = ultimo;
+
+    // Mediciones
+    document.getElementById(&#x27;enviados&#x27;).textContent = e.enviados;
+    document.getElementById(&#x27;entregados&#x27;).textContent = e.entregados;
+    document.getElementById(&#x27;fallidos&#x27;).textContent = e.fallidos;
+    var total = e.entregados + e.fallidos;
+    document.getElementById(&#x27;porcentaje&#x27;).textContent = total ? Math.round(100 * e.entregados / total) + &#x27;%&#x27; : &#x27;-&#x27;;
+    document.getElementById(&#x27;idaVuelta&#x27;).textContent = e.idaVueltaUs &lt; 0 ? &#x27;-&#x27; : (e.idaVueltaUs / 1000).toFixed(1).replace(&#x27;.&#x27;, &#x27;,&#x27;) + &#x27; ms&#x27;;
+  }
+
+  function dibujarLed(cual, encendido, habilitado) {
+    document.getElementById(&#x27;foco&#x27; + cual).className = &#x27;foco&#x27; + (encendido ? &#x27; on&#x27; : &#x27;&#x27;);
+    var b = document.getElementById(&#x27;boton&#x27; + cual);
+    b.textContent = encendido ? &#x27;Apagar&#x27; : &#x27;Encender&#x27;;
+    b.disabled = !habilitado;
+  }
+
+  function cambiarLed(cual) {
+    if (!estado) return;
+    var actual = cual === &#x27;propio&#x27; ? estado.ledPropio === 1 : estado.ledRemoto === 1;
+    pedir(&#x27;/led?cual=&#x27; + cual + &#x27;&amp;estado=&#x27; + (actual ? 0 : 1));
+  }
+
+  function enviar() {
+    var apodo = document.getElementById(&#x27;apodo&#x27;).value.trim();
+    var texto = document.getElementById(&#x27;texto&#x27;).value.trim();
+    if (!texto) return;
+    try { localStorage.setItem(&#x27;apodo&#x27;, apodo); } catch (e) {}
+    document.getElementById(&#x27;texto&#x27;).value = &#x27;&#x27;;
+    pedir(&#x27;/enviar?apodo=&#x27; + encodeURIComponent(apodo) + &#x27;&amp;texto=&#x27; + encodeURIComponent(texto));
+  }
+
+  document.getElementById(&#x27;texto&#x27;).addEventListener(&#x27;keydown&#x27;, function (ev) {
+    if (ev.key === &#x27;Enter&#x27;) enviar();
+  });
+
+  pedir(&#x27;/estado&#x27;);
+  setInterval(function () { pedir(&#x27;/estado&#x27;); }, 1000);
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+)rawliteral&quot;;
+</code></pre>
+  </div>
+</section>
+
+<!-- ============================ 3. MENSAJE ============================ -->
+<section class="bloque" id="mensaje">
+  <div class="titulo"><span class="num">03</span><h2>El mensaje por dentro: 136 bytes</h2></div>
+  <p class="pregunta">Cada mensaje es una “caja” con lugares fijos: la <code>struct Mensaje</code> del programa. Las dos placas usan la misma caja, así cada una sabe dónde está cada dato. Escribí y mirá qué bytes cambian.</p>
+
+  <div class="campos">
+    <label>Tipo <select id="m-tipo">
+      <option value="1">1 · ANUNCIO</option><option value="2" selected>2 · CHAT</option><option value="3">3 · LED_ORDEN</option>
+      <option value="4">4 · LED_ESTADO</option><option value="5">5 · PING</option><option value="6">6 · PONG</option></select></label>
+    <label>nombrePlaca (12 bytes)<input id="m-nombre" value="CHAT-3F2A" maxlength="11"></label>
+    <label>apodo (16 bytes)<input id="m-apodo" value="Tomi" maxlength="15"></label>
+    <label>texto (100 bytes)<input id="m-texto" value="¡Hola! ¿Me leés?"></label>
+    <label>led<select id="m-led"><option value="0">0 · apagado</option><option value="1">1 · encendido</option></select></label>
+  </div>
+  <div class="leyenda-campos" id="leyenda-campos"></div>
+  <div class="bytes" id="bytes" aria-label="Los 136 bytes del mensaje"></div>
+  <p class="nota" id="m-resumen"></p>
+  <p class="idea"><strong>Para pensar:</strong> “á” ocupa 2 bytes y “¡” también. ¿Cuántas letras entran en el texto si escribís todo con tildes? ¿Por qué hay 2 bytes de “relleno” antes de <code>marcaTiempo</code>?</p>
+</section>
+
+<!-- ============================ 4. PAREJA ============================ -->
+<section class="bloque" id="pareja">
+  <div class="titulo"><span class="num">04</span><h2>Emparejar sin escribir la MAC, y recordarla en la EEPROM</h2></div>
+  <p class="pregunta">Cada placa grita “¡acá estoy!” a todas cada 3 segundos (broadcast a FF:FF:FF:FF:FF:FF). Así aparece en la lista de las demás. Al emparejar, la MAC se guarda en la EEPROM y sobrevive a un apagado.</p>
+
+  <div class="grid2">
+    <div class="controles">
+      <div class="nota">Placas cercanas que escucha <b>CHAT-3F2A</b>:</div>
+      <div id="sim-vecinas" style="display:grid;gap:6px"></div>
+      <div class="fila" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="boton sec" id="sim-olvidar">Olvidar pareja</button>
+        <button class="boton sec" id="sim-reiniciar">Desenchufar y volver a enchufar</button>
+        <button class="boton sec" id="sim-apagar">Apagar CHAT-C210</button>
+      </div>
+    </div>
+    <div class="lateral">
+      <div>
+        <div class="nota" style="margin-bottom:6px">EEPROM de CHAT-3F2A (posiciones 0 a 7)</div>
+        <div class="eeprom" id="sim-eeprom"></div>
+        <p class="nota">Posición 0: marca <code>A5</code> = “hay pareja guardada”. Posiciones 1 a 6: la MAC de la pareja.</p>
+      </div>
+      <div class="monitor" id="sim-monitor"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer>Distancias y tiempos del simulador son ilustrativos. Los valores reales se miden en el aula con la página de cada placa.</footer>
+
+<script>
+(function () {
+  "use strict";
+  function q(id) { return document.getElementById(id); }
+  var reduceMotion = false;
+  try { reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+
+  /* ================= 1. ESQUEMA DEL SISTEMA ================= */
+  (function dibujarSistema() {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 760 330");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Celular 1 conectado por WiFi a la placa A; placa A y placa B conectadas por ESP-NOW; celular 2 conectado por WiFi a la placa B");
+    function el(t, a, p) { var e = document.createElementNS(NS, t); for (var k in a) e.setAttribute(k, a[k]); (p || svg).appendChild(e); return e; }
+    function tx(x, y, s, a) { var e = el("text", Object.assign({ x: x, y: y, "font-family": "IBM Plex Mono, monospace", "font-size": 11, fill: "#333", "text-anchor": "middle" }, a || {})); e.textContent = s; return e; }
+
+    function celular(x, y, nombre) {
+      el("rect", { x: x, y: y, width: 70, height: 130, rx: 12, fill: "#22272b", stroke: "#111" });
+      el("rect", { x: x + 6, y: y + 14, width: 58, height: 96, rx: 3, fill: "#eaf2f7" });
+      el("rect", { x: x + 10, y: y + 20, width: 50, height: 10, rx: 2, fill: "#2a7fb8" });
+      for (var i = 0; i < 4; i++) el("rect", { x: x + (i % 2 ? 26 : 10), y: y + 36 + i * 14, width: 34, height: 9, rx: 3, fill: i % 2 ? "#1f4e73" : "#9aa6a1" });
+      el("circle", { cx: x + 35, cy: y + 120, r: 4, fill: "#555" });
+      tx(x + 35, y + 150, nombre, { "font-weight": 600 });
+    }
+    function placa(x, y, nombre) {
+      el("rect", { x: x, y: y, width: 120, height: 200, rx: 6, fill: "#1f2328", stroke: "#0d0f12" });
+      el("rect", { x: x + 22, y: y + 6, width: 76, height: 50, rx: 2, fill: "#c7ccd1", stroke: "#8a9096" });
+      tx(x + 60, y + 30, "ESP-12E", { fill: "#3a3f45", "font-size": 9 });
+      el("path", { d: "M" + (x + 28) + " " + (y + 12) + " h8 v6 h-6 v6 h12 v-12 h6 v12 h6 v-12 h6 v12 h6", fill: "none", stroke: "#c9a227", "stroke-width": 1.6 });
+      el("circle", { cx: x + 104, cy: y + 66, r: 5, fill: "#3aa0ff", stroke: "#7cc0ff" });
+      tx(x + 104, y + 82, "LED", { fill: "#9cc8ff", "font-size": 8 });
+      for (var i = 0; i < 15; i++) { el("rect", { x: x + 4, y: y + 64 + i * 8.5, width: 5, height: 5, fill: "#b08d2a" }); el("rect", { x: x + 111, y: y + 64 + i * 8.5, width: 5, height: 5, fill: "#b08d2a" }); }
+      tx(x + 60, y + 110, "NodeMCU", { fill: "#fff", "font-size": 13, "font-weight": 600 });
+      tx(x + 60, y + 126, nombre, { fill: "#f2c230", "font-size": 11 });
+      el("rect", { x: x + 45, y: y + 186, width: 30, height: 20, rx: 3, fill: "#b8bec4", stroke: "#7d848b" });
+      el("path", { d: "M" + (x + 60) + " " + (y + 206) + " C " + (x + 60) + " " + (y + 240) + " " + (x + 30) + " " + (y + 236) + " " + (x + 30) + " " + (y + 270), fill: "none", stroke: "#333", "stroke-width": 4, "stroke-linecap": "round" });
+      tx(x + 30, y + 288, "USB (5 V)", { "font-size": 10, fill: "#555" });
+    }
+    function ondas(x1, y1, x2, y2, color, rotulo, ry) {
+      el("path", { d: "M" + x1 + " " + y1 + " L" + x2 + " " + y2, stroke: color, "stroke-width": 3, "stroke-dasharray": "8 6", fill: "none" });
+      var mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+      var w = rotulo.length * 6.6 + 14;
+      el("rect", { x: mx - w / 2, y: my + (ry || -24), width: w, height: 18, rx: 9, fill: "#fff", stroke: color });
+      tx(mx, my + (ry || -24) + 12.5, rotulo, { fill: color, "font-weight": 600 });
+    }
+    celular(20, 70, "Celular 1");
+    placa(190, 30, "CHAT-3F2A (A)");
+    placa(450, 30, "CHAT-09B4 (B)");
+    celular(670, 70, "Celular 2");
+    ondas(92, 130, 188, 130, "#2b6fd6", "WiFi", -26);
+    ondas(312, 130, 448, 130, "#e8891a", "ESP-NOW · canal 1", -26);
+    ondas(572, 130, 668, 130, "#2b6fd6", "WiFi", -26);
+    tx(380, 175, "chat, LED y ping", { fill: "#b8650f", "font-size": 10 });
+    tx(140, 175, "página web", { fill: "#2b6fd6", "font-size": 10 });
+    tx(620, 175, "página web", { fill: "#2b6fd6", "font-size": 10 });
+    q("esq-sistema").appendChild(svg);
+  })();
+
+  /* ================= 2. SIMULADOR DE RED ================= */
+  var placas = {
+    A: { nombre: "CHAT-3F2A", apodo: "Tomi", led: false, ledOtra: null, chat: q("chatA"), ledEl: q("ledA") },
+    B: { nombre: "CHAT-09B4", apodo: "Juli", led: false, ledOtra: null, chat: q("chatB"), ledEl: q("ledB") }
+  };
+  function otra(id) { return id === "A" ? "B" : "A"; }
+  function distancia() { return +q("dist").value; }
+  function canal(id) { return +q("canal" + id).value; }
+  function emparejada(id) { return q("par" + id).checked; }
+
+  // Probabilidad de que el paquete se pierda según la distancia (ilustrativa)
+  function probPerdida(d) { if (d <= 60) return 0; return Math.min(1, Math.pow((d - 60) / 140, 1.4)); }
+
+  function bitacora(html) {
+    var b = q("bitacora"); var linea = document.createElement("div"); linea.innerHTML = html;
+    b.appendChild(linea); b.scrollTop = b.scrollHeight;
+  }
+  function burbuja(id, clase, quien, texto) {
+    var d = document.createElement("div"); d.className = "burbuja " + clase;
+    if (quien !== null) { var s = document.createElement("small"); s.textContent = quien; d.appendChild(s); }
+    var t = document.createElement("div"); t.textContent = texto; d.appendChild(t);
+    placas[id].chat.appendChild(d); placas[id].chat.scrollTop = placas[id].chat.scrollHeight;
+    return d;
+  }
+  function dibujarLeds() {
+    ["A", "B"].forEach(function (id) {
+      placas[id].ledEl.className = "led-azul" + (placas[id].led ? " on" : "");
+      document.querySelector('[data-led="' + id + '"][data-cual="propio"]').textContent = placas[id].led ? "Apagar mi LED" : "Encender mi LED";
+      var o = placas[id].ledOtra;
+      document.querySelector('[data-led="' + id + '"][data-cual="remoto"]').textContent = (o ? "Apagar" : "Encender") + " LED de " + otra(id);
+    });
+  }
+
+  var COLORES = { CHAT: "#f2c230", LED_ORDEN: "#7cc0ff", LED_ESTADO: "#a5d6a7", PING: "#e0b3ff", PONG: "#e0b3ff" };
+  var carril = 0;
+
+  // Envía un paquete de "de" a la otra placa. alLlegar se ejecuta si la otra placa lo acepta.
+  function transmitir(de, tipo, etiqueta, alLlegar, alConfirmar) {
+    var a = otra(de);
+    var llegaRadio = canal(de) === canal(a) && Math.random() >= probPerdida(distancia());
+    var aire = q("aire");
+    var p = document.createElement("div");
+    p.className = "paquete";
+    p.style.background = COLORES[tipo];
+    p.textContent = tipo + (etiqueta ? " " + etiqueta : "");
+    p.style.top = (34 + (carril++ % 8) * 26) + "px";
+    aire.appendChild(p);
+    var ancho = Math.max(4, aire.clientWidth - p.offsetWidth - 8);
+    p.style.left = (de === "A" ? 4 : ancho) + "px";
+    var destinoX = de === "A" ? ancho : 4;
+    var mitad = (4 + ancho) / 2;
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { p.style.left = (llegaRadio ? destinoX : mitad) + "px"; });
+    });
+    var demora = reduceMotion ? 0 : 820;
+    setTimeout(function () {
+      if (!llegaRadio) {
+        p.classList.add("perdido");
+        var motivo = canal(de) !== canal(a) ? "canales distintos (" + canal(de) + " y " + canal(a) + ")" : "demasiado lejos";
+        bitacora('<span class="mal">✗ ' + de + " → " + a + " " + tipo + ": no llegó · " + motivo + "</span>");
+        if (alConfirmar) alConfirmar(false);
+      } else {
+        if (alConfirmar) alConfirmar(true);
+        if (emparejada(a)) {
+          bitacora('<span class="ok">✓ ' + de + " → " + a + " " + tipo + ": llegó y " + a + " lo procesó</span>");
+          if (alLlegar) alLlegar();
+        } else {
+          bitacora('<span class="gris">✓ ' + de + " → " + a + " " + tipo + ": la radio de " + a + " lo recibió, pero el programa lo descartó (no es su pareja)</span>");
+        }
+      }
+      setTimeout(function () { p.remove(); }, 500);
+    }, demora);
+  }
+
+  function enviarChat(de) {
+    var input = q("in" + de); var texto = input.value.trim(); if (!texto) return;
+    var a = otra(de);
+    if (!emparejada(de)) { burbuja(de, "sistema", null, "Sin pareja: el mensaje no se envía."); return; }
+    var b = burbuja(de, "mia", placas[de].apodo + " … enviando", texto);
+    transmitir(de, "CHAT", "", function () {
+      burbuja(a, "suya", placas[de].apodo, texto);
+    }, function (ok) {
+      b.querySelector("small").textContent = placas[de].apodo + (ok ? " ✓ llegó" : " ✗ no llegó");
+    });
+  }
+
+  function enviarEstadoLed(de) {
+    var a = otra(de);
+    if (!emparejada(de)) return;
+    var valor = placas[de].led;
+    transmitir(de, "LED_ESTADO", valor ? "1" : "0", function () { placas[a].ledOtra = valor; dibujarLeds(); });
+  }
+
+  function botonLed(de, cual) {
+    var a = otra(de);
+    if (cual === "propio") {
+      placas[de].led = !placas[de].led; dibujarLeds(); enviarEstadoLed(de); return;
+    }
+    if (!emparejada(de)) { burbuja(de, "sistema", null, "Sin pareja: no hay a quién mandar la orden."); return; }
+    var encender = !placas[de].ledOtra;
+    transmitir(de, "LED_ORDEN", encender ? "1" : "0", function () {
+      placas[a].led = encender; dibujarLeds();
+      burbuja(a, "sistema", null, "La otra placa " + (encender ? "encendió" : "apagó") + " tu LED");
+      enviarEstadoLed(a);
+    });
+  }
+
+  function ping(de) {
+    var a = otra(de);
+    if (!emparejada(de)) { burbuja(de, "sistema", null, "Sin pareja: no se puede medir."); return; }
+    var t0 = performance.now();
+    transmitir(de, "PING", "", function () {
+      transmitir(a, "PONG", "", function () {
+        // Tiempo ilustrativo: base de unos 2 ms por tramo, más un poco con la distancia
+        var ms = 2 * (1.6 + distancia() * 0.004) + Math.random() * 1.2;
+        burbuja(de, "sistema", null, "Ida y vuelta: " + ms.toFixed(1).replace(".", ",") + " ms");
+      });
+    });
+  }
+
+  document.querySelectorAll("[data-enviar]").forEach(function (b) { b.addEventListener("click", function () { enviarChat(b.dataset.enviar); }); });
+  ["A", "B"].forEach(function (id) {
+    q("in" + id).addEventListener("keydown", function (ev) { if (ev.key === "Enter") enviarChat(id); });
+  });
+  document.querySelectorAll("[data-led]").forEach(function (b) { b.addEventListener("click", function () { botonLed(b.dataset.led, b.dataset.cual); }); });
+  document.querySelectorAll("[data-ping]").forEach(function (b) { b.addEventListener("click", function () { ping(b.dataset.ping); }); });
+  q("dist").addEventListener("input", function () { q("dist-out").textContent = q("dist").value + " m"; });
+
+  // Estado inicial: una conversación de ejemplo ya entregada
+  burbuja("A", "mia", "Tomi ✓ llegó", "¿Probamos el LED?");
+  burbuja("B", "suya", "Tomi", "¿Probamos el LED?");
+  bitacora('<span class="ok">✓ A → B CHAT: llegó y B lo procesó</span>');
+  dibujarLeds();
+
+  /* ================= 3. EL MENSAJE POR DENTRO ================= */
+  var CAMPOS = [
+    { nombre: "tipo", bytes: 1, color: "#e0b3ff" },
+    { nombre: "nombrePlaca", bytes: 12, color: "#f2c230" },
+    { nombre: "apodo", bytes: 16, color: "#a5d6a7" },
+    { nombre: "texto", bytes: 100, color: "#7cc0ff" },
+    { nombre: "led", bytes: 1, color: "#ff8a80" },
+    { nombre: "relleno", bytes: 2, color: "#d5d3cb" },
+    { nombre: "marcaTiempo", bytes: 4, color: "#ffcc80" }
+  ];
+  q("leyenda-campos").innerHTML = CAMPOS.map(function (c) { return '<span><i style="background:' + c.color + '"></i>' + c.nombre + " (" + c.bytes + ")</span>"; }).join("");
+
+  function utf8(s, max) {
+    var b = Array.from(new TextEncoder().encode(s));
+    if (b.length > max - 1) {                 // mismo recorte que copiarTexto() del programa
+      b = b.slice(0, max - 1);
+      var n = b.length;
+      while (n > 0 && (b[n - 1] & 0xC0) === 0x80) n--;
+      if (n > 0 && b[n - 1] >= 0xC0) n--;
+      b = b.slice(0, n);
+    }
+    return b;
+  }
+  function hex(n) { return (n < 16 ? "0" : "") + n.toString(16).toUpperCase(); }
+
+  function dibujarMensaje() {
+    var nombre = utf8(q("m-nombre").value, 12), apodo = utf8(q("m-apodo").value, 16), texto = utf8(q("m-texto").value, 100);
+    var datos = {
+      tipo: [+q("m-tipo").value], nombrePlaca: nombre, apodo: apodo, texto: texto,
+      led: [+q("m-led").value], relleno: [], marcaTiempo: [0x40, 0xE2, 0x01, 0x00]
+    };
+    var html = "";
+    CAMPOS.forEach(function (c) {
+      var v = datos[c.nombre];
+      for (var i = 0; i < c.bytes; i++) {
+        var usado = i < v.length;
+        var valor = usado ? hex(v[i]) : "00";
+        var opac = usado || c.nombre === "relleno" ? 1 : 0.35;
+        html += '<div class="byte" title="' + c.nombre + " [" + i + ']" style="background:' + c.color + ";opacity:" + opac + '">' + valor + "</div>";
+      }
+    });
+    q("bytes").innerHTML = html;
+    var letras = Array.from(q("m-texto").value).length;
+    q("m-resumen").textContent = "texto: " + letras + " caracteres → " + texto.length + " bytes usados de 99 (el último lugar es el 0 que marca el final). "
+      + (new TextEncoder().encode(q("m-texto").value).length > 99 ? "¡No entra completo: el programa lo recorta! " : "")
+      + "Total del mensaje: 136 bytes, siempre. ESP-NOW admite hasta 250.";
+  }
+  ["m-tipo", "m-nombre", "m-apodo", "m-texto", "m-led"].forEach(function (id) { q(id).addEventListener("input", dibujarMensaje); });
+  dibujarMensaje();
+
+  /* ================= 4. EMPAREJAR Y EEPROM ================= */
+  var vecinas = [
+    { nombre: "CHAT-09B4", mac: "5E:CF:7F:A1:09:B4", encendida: true, hace: 1 },
+    { nombre: "CHAT-C210", mac: "5E:CF:7F:77:C2:10", encendida: true, hace: 2 },
+    { nombre: "CHAT-7D4E", mac: "5E:CF:7F:3B:7D:4E", encendida: true, hace: 0 }
+  ];
+  var eeprom = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF];   // una EEPROM nueva viene en FF
+  var pareja = null;
+  var cambiadas = [];
+
+  function monitor(texto) { q("sim-monitor").textContent = texto; }
+
+  function dibujarEeprom() {
+    q("sim-eeprom").innerHTML = eeprom.map(function (b, i) {
+      return '<div class="' + (cambiadas.indexOf(i) >= 0 ? "cambio" : "") + '"><small>' + i + "</small>" + hex(b) + "</div>";
+    }).join("");
+  }
+  function dibujarVecinas() {
+    var cont = q("sim-vecinas"); cont.innerHTML = "";
+    vecinas.forEach(function (v) {
+      if (!v.encendida && v.hace > 10) return;
+      var fila = document.createElement("div"); fila.className = "vecina-sim";
+      var info = document.createElement("div");
+      info.innerHTML = "<b></b> <span class='nota'></span><br><span class='mac'></span>";
+      info.querySelector("b").textContent = v.nombre;
+      info.querySelector(".nota").textContent = "· anuncio hace " + v.hace + " s";
+      info.querySelector(".mac").textContent = v.mac;
+      var b = document.createElement("button");
+      var esPareja = pareja === v.mac;
+      b.className = "boton" + (esPareja ? " sec" : ""); b.textContent = esPareja ? "Es mi pareja" : "Emparejar"; b.disabled = esPareja;
+      b.addEventListener("click", function () { emparejar(v); });
+      fila.appendChild(info); fila.appendChild(b); cont.appendChild(fila);
+    });
+  }
+  function emparejar(v) {
+    pareja = v.mac;
+    var bytes = v.mac.split(":").map(function (h) { return parseInt(h, 16); });
+    eeprom[0] = 0xA5; for (var i = 0; i < 6; i++) eeprom[1 + i] = bytes[i];
+    cambiadas = [0, 1, 2, 3, 4, 5, 6];
+    monitor("Pareja: " + v.mac + "\nEEPROM.write(0, 0xA5)\nEEPROM.write(1..6, MAC)\nEEPROM.commit()  -> guardado");
+    dibujarEeprom(); dibujarVecinas();
+  }
+  q("sim-olvidar").addEventListener("click", function () {
+    pareja = null; eeprom[0] = 0x00; cambiadas = [0];
+    monitor("Pareja olvidada.\nEEPROM.write(0, 0x00)\nEEPROM.commit()\n(los bytes 1 a 6 quedan, pero sin la marca no se usan)");
+    dibujarEeprom(); dibujarVecinas();
+  });
+  q("sim-reiniciar").addEventListener("click", function () {
+    pareja = null; cambiadas = [];
+    var texto = "=== Clase 2 - ESP-NOW, chat y LED remoto ===\nRed WiFi: CHAT-3F2A  clave: robotica2026\n";
+    if (eeprom[0] === 0xA5) {
+      var mac = eeprom.slice(1, 7).map(hex).join(":");
+      pareja = mac;
+      texto += "EEPROM[0] = A5 -> hay pareja guardada\nPareja: " + mac + "\nPareja recuperada de la EEPROM.";
+    } else {
+      texto += "EEPROM[0] = " + hex(eeprom[0]) + " -> no hay marca\nSin pareja: emparejá desde la página.";
+    }
+    monitor(texto); dibujarEeprom(); dibujarVecinas();
+  });
+  q("sim-apagar").addEventListener("click", function () {
+    var v = vecinas[1]; v.encendida = !v.encendida;
+    q("sim-apagar").textContent = (v.encendida ? "Apagar " : "Encender ") + v.nombre;
+    if (v.encendida) v.hace = 0;
+  });
+  setInterval(function () {
+    vecinas.forEach(function (v) { v.hace = v.encendida ? (v.hace + 1) % 3 : v.hace + 1; });
+    dibujarVecinas();
+  }, 1000);
+  monitor("=== Clase 2 - ESP-NOW, chat y LED remoto ===\nRed WiFi: CHAT-3F2A  clave: robotica2026\nEEPROM[0] = FF -> no hay marca\nSin pareja: emparejá desde la página.");
+  dibujarEeprom(); dibujarVecinas();
+
+  /* ================= Copiar código ================= */
+  document.querySelectorAll(".copiar").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var texto = q(btn.dataset.objetivo).textContent;
+      function listo(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = "Copiar código"; }, 1800); }
+      function seleccionar() {
+        var r = document.createRange(); r.selectNodeContents(q(btn.dataset.objetivo));
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        listo("Seleccionado: Ctrl+C");
+      }
+      try { navigator.clipboard.writeText(texto).then(function () { listo("Copiado"); }, seleccionar); }
+      catch (e) { seleccionar(); }
+    });
+  });
+})();
+</script>
+</body>
+</html>
