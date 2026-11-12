@@ -291,6 +291,10 @@ button:focus-visible{outline:2px solid var(--captura);outline-offset:2px}
   font-family:var(--mono);font-size:11.5px;line-height:1.7;color:var(--texto-ten);
 }
 .oculto{display:none!important}
+/* El atributo hidden debe ganarle a cualquier regla de clase que fije display
+   (por ejemplo .aviso, que es display:grid). Sin esto el panel de "cámara
+   apagada" sigue tapando el vídeo aunque se lo marque como oculto. */
+[hidden]{display:none!important}
 
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
