@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simuladores de la Clase 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+
+/* Plan: mesa de laboratorio clara, con los instrumentos (osciloscopio, multímetro) como paneles oscuros.
+   Colores de canal como en un osciloscopio real: CH1 amarillo, promedio cian. Secciones apiladas para proyectar. */
+:root {
+  --bg: #f3f4f1;
+  --surface: #ffffff;
+  --ink: #1d2320;
+  --muted: #5d6762;
+  --line: #d7dcd8;
+  --accent: #1f6f8b;
+  --instrument: #14191b;
+  --instrument-line: #2b3438;
+  --trace: #f2c230;
+  --trace2: #4fd1e6;
+  --ok: #2e8b57;
+  --warn: #c98a12;
+  --bad: #c0392b;
+  --font-display: "IBM Plex Sans Condensed", "Arial Narrow", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", Arial, Helvetica, sans-serif;
+  --font-mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111517;
+    --surface: #1a2023;
+    --ink: #e7ece9;
+    --muted: #9aa6a1;
+    --line: #2e373b;
+    --accent: #5fb6d3;
+    --instrument: #0b0f10;
+    --instrument-line: #263034;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111517;
+  --surface: #1a2023;
+  --ink: #e7ece9;
+  --muted: #9aa6a1;
+  --line: #2e373b;
+  --accent: #5fb6d3;
+  --instrument: #0b0f10;
+  --instrument-line: #263034;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.5;
+}
+header.top {
+  padding: 28px 20px 12px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.kicker { font-family: var(--font-mono); font-size: 13px; color: var(--accent); letter-spacing: .04em; }
+h1, h2 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 4.5vw, 46px); line-height: 1.05; margin-top: 6px; }
+.lead { color: var(--muted); max-width: 68ch; margin: 10px 0 0; }
+nav.secciones {
+  position: sticky; top: 0; z-index: 5;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+nav.secciones .fila {
+  max-width: 1100px; margin: 0 auto; padding: 10px 20px;
+  display: flex; gap: 8px; overflow-x: auto;
+}
+nav.secciones a {
+  white-space: nowrap; text-decoration: none; color: var(--ink);
+  border: 1px solid var(--line); background: var(--surface);
+  padding: 6px 12px; border-radius: 999px; font-size: 14px;
+}
+nav.secciones a:hover, nav.secciones a:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+main { max-width: 1100px; margin: 0 auto; padding: 8px 20px 60px; display: grid; gap: 28px; }
+section.bloque {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px;
+  display: grid;
+  gap: 16px;
+  scroll-margin-top: 70px;
+}
+.titulo { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+.num { font-family: var(--font-mono); color: var(--accent); font-size: 15px; }
+h2 { font-size: clamp(24px, 3vw, 32px); line-height: 1.1; }
+.pregunta { color: var(--muted); margin: 0; max-width: 70ch; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: 1fr; } }
+
+/* Controles */
+.controles { display: grid; gap: 12px; }
+.control label { display: flex; justify-content: space-between; font-weight: 600; font-size: 15px; }
+.control output { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--accent); height: 28px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  font: inherit; font-size: 14px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  padding: 6px 12px; border-radius: 999px;
+}
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.boton {
+  font: inherit; font-weight: 600; cursor: pointer;
+  border: none; border-radius: 10px; padding: 10px 16px;
+  background: var(--accent); color: #fff;
+}
+.boton.sec { background: var(--bg); color: var(--ink); border: 1px solid var(--line); }
+
+/* Instrumentos */
+.instrumento {
+  background: var(--instrument);
+  border: 1px solid var(--instrument-line);
+  border-radius: 12px;
+  padding: 12px;
+  color: #cfd8d4;
+}
+.instrumento .rotulo { font-family: var(--font-mono); font-size: 12px; color: #8a9893; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+canvas.osc { width: 100%; height: 260px; display: block; margin-top: 8px; border-radius: 6px; }
+.lecturas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+@media (max-width: 560px) { .lecturas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.lectura { background: #0f1416; border: 1px solid var(--instrument-line); border-radius: 8px; padding: 8px; }
+.lectura .k { font-size: 11px; color: #8a9893; font-family: var(--font-mono); }
+.lectura .v { font-family: var(--font-mono); font-size: 20px; color: var(--trace); font-variant-numeric: tabular-nums; }
+.lectura.prom .v { color: var(--trace2); }
+
+.lateral { display: grid; gap: 14px; }
+.multimetro { text-align: center; }
+.multimetro .pantalla {
+  margin-top: 8px; background: #b9c4a6; color: #1c2414; border-radius: 8px;
+  font-family: var(--font-mono); font-size: 44px; font-weight: 600; padding: 8px 10px;
+  font-variant-numeric: tabular-nums; letter-spacing: .02em;
+}
+.multimetro .pantalla small { font-size: 20px; }
+.led-caja { display: grid; place-items: center; padding: 18px 0 8px; }
+.led {
+  width: 92px; height: 92px; border-radius: 50%;
+  background: #2a2f31; position: relative;
+  border: 3px solid #3a4245;
+}
+.led .luz { position: absolute; inset: 0; border-radius: 50%; }
+.nota { font-size: 14px; color: var(--muted); margin: 0; }
+.instrumento .nota { color: #8a9893; }
+.idea {
+  border-left: 4px solid var(--accent); background: var(--bg);
+  padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 0;
+}
+.formula { font-family: var(--font-mono); font-size: 15px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; overflow-x: auto; }
+
+/* RGB */
+.canales { display: grid; gap: 10px; }
+.canal { display: grid; grid-template-columns: 70px minmax(0, 1fr) 120px; gap: 10px; align-items: center; }
+@media (max-width: 560px) { .canal { grid-template-columns: 56px minmax(0, 1fr); } .canal canvas { grid-column: 1 / -1; } }
+.canal .nom { font-weight: 600; }
+.canal canvas { width: 100%; height: 44px; background: var(--instrument); border-radius: 6px; }
+
+/* Tablas */
+.tabla-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+th { font-size: 13px; color: var(--muted); font-weight: 600; }
+td.n { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+th.n { text-align: right; }
+
+/* Ánodo / cátodo */
+.circuito { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.pieza {
+  border: 1px solid var(--line); background: var(--bg); border-radius: 8px;
+  padding: 8px 10px; font-family: var(--font-mono); font-size: 14px; text-align: center; min-width: 74px;
+}
+.pieza small { display: block; color: var(--muted); font-family: var(--font-body); font-size: 11px; }
+.flecha { font-family: var(--font-mono); color: var(--accent); font-size: 20px; }
+.muestras { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.muestra { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.muestra .color { height: 90px; }
+.muestra .pie { padding: 6px 10px; font-size: 14px; display: flex; justify-content: space-between; gap: 8px; }
+.estado { font-size: 13px; font-weight: 600; padding: 2px 8px; border-radius: 999px; color: #fff; }
+.estado.ok { background: var(--ok); }
+.estado.mal { background: var(--bad); }
+.estado.atencion { background: var(--warn); }
+.interruptor { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.interruptor input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+/* Esquemas */
+.esquema { border: 1px solid var(--line); border-radius: 12px; background: #fafaf7; color: #1d2320; overflow: hidden; }
+.esquema-titulo { padding: 10px 14px; font-weight: 600; border-bottom: 1px solid #e3e2dc; background: #f1f0ea; }
+.esquema-dibujo { overflow-x: auto; padding: 6px; }
+.esquema-dibujo svg { display: block; width: 100%; min-width: 620px; height: auto; }
+.esquema-leyenda { margin: 0; padding: 10px 14px 12px 32px; font-size: 14px; display: grid; gap: 2px; border-top: 1px solid #e3e2dc; }
+/* Código */
+.codigo { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.codigo-barra { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 14px; background: var(--bg); border-bottom: 1px solid var(--line); }
+pre.fuente { margin: 0; max-height: 420px; overflow: auto; background: var(--instrument); color: #d8e3de; padding: 14px; font-family: var(--font-mono); font-size: 13.5px; line-height: 1.55; tab-size: 2; }
+.lead a, .nota a { color: var(--accent); }
+/* Calculadora */
+.barra { height: 18px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; position: relative; overflow: hidden; }
+.barra .relleno { position: absolute; inset: 0 auto 0 0; border-radius: 999px; }
+.barra .limite { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); }
+.resultado { font-family: var(--font-mono); font-size: 34px; font-variant-numeric: tabular-nums; }
+footer { max-width: 1100px; margin: 0 auto; padding: 0 20px 40px; color: var(--muted); font-size: 14px; }
+
+/* ---- Clase 3 ---- */
+.campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.campos label { font-size: 14px; font-weight: 600; display: grid; gap: 4px; }
+select, .campos input, .lectura-aula input { font: inherit; padding: 7px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.medidor { display: grid; gap: 8px; }
+.medidor .fila-barra { display: grid; grid-template-columns: 140px minmax(0, 1fr) 90px; gap: 10px; align-items: center; font-size: 14px; }
+.medidor .barra-fondo { height: 22px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; position: relative; }
+.medidor .barra-fondo div { position: absolute; top: 0; bottom: 0; left: 0; }
+.medidor .valor { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; }
+.veredicto { font-size: 20px; font-weight: 700; }
+.palabras { display: grid; gap: 6px; }
+.palabra { display: grid; grid-template-columns: 90px minmax(0, 1fr) 64px; gap: 10px; align-items: center; font-size: 15px; }
+.palabra .barra-fondo { height: 20px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.palabra .barra-fondo div { height: 100%; background: var(--accent); }
+.palabra.elegida { font-weight: 700; }
+.frase { font-size: 20px; font-family: var(--font-display); }
+.frase b { color: var(--accent); }
+.entrenador { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 900px) { .entrenador { grid-template-columns: 1fr; } }
+canvas#plano { width: 100%; height: auto; aspect-ratio: 560 / 400; display: block; border-radius: 10px; border: 1px solid var(--line); cursor: crosshair; background: #fff; }
+canvas#curva { width: 100%; height: 70px; display: block; border-radius: 8px; background: var(--instrument); }
+.clase-chip[data-c="0"][aria-pressed="true"] { background: #3a7bff; border-color: #3a7bff; }
+.clase-chip[data-c="1"][aria-pressed="true"] { background: #2f9e44; border-color: #2f9e44; }
+.clase-chip[data-c="2"][aria-pressed="true"] { background: #e03a2f; border-color: #e03a2f; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.stats div { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12px; color: var(--muted); }
+.stats b { display: block; font-family: var(--font-mono); font-size: 18px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.cuenta { font-family: var(--font-mono); font-size: 13px; background: var(--instrument); color: #cfd8d4; border-radius: 10px; padding: 10px; white-space: pre; overflow-x: auto; min-height: 120px; }
+.lectura-aula { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.lectura-aula input { width: 80px; }
+textarea#exportado { width: 100%; min-height: 220px; font-family: var(--font-mono); font-size: 12.5px; background: var(--instrument); color: #d8e3de; border-radius: 10px; padding: 10px; border: none; }
+.escala { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: center; text-align: center; }
+.escala .lado { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.escala .cifra { font-family: var(--font-mono); font-size: clamp(24px, 4vw, 38px); font-weight: 600; color: var(--accent); }
+@media (max-width: 640px) { .escala { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="kicker">ROBÓTICA · IA LOCAL · NODEMCU V3 (ESP8266) · CLASE 3</div>
+  <h1>IA local: un modelo de lenguaje en la netbook y una red neuronal en la placa</h1>
+  <p class="lead">En el primer encuentro, un modelo como DeepSeek corre sin internet en la netbook. En el segundo, entrenamos una red neuronal de 27 números y la ponemos a pensar dentro del ESP8266.</p>
+  <div class="escala" style="margin-top:16px">
+    <div class="lado"><div class="cifra">1.780.000.000</div><div>parámetros de DeepSeek-R1-Distill-Qwen-1.5B</div></div>
+    <div class="nota">contra</div>
+    <div class="lado"><div class="cifra">27</div><div>parámetros de nuestra red en el ESP8266</div></div>
+  </div>
+</header>
+
+<nav class="secciones" aria-label="Secciones">
+  <div class="fila">
+    <a href="#memoria">1 · ¿Entra en mi netbook?</a>
+    <a href="#palabra">2 · ¿Cómo escribe un LLM?</a>
+    <a href="#entrenador">3 · Entrenar la red</a>
+    <a href="#placa">4 · La red en la placa</a>
+  </div>
+</nav>
+
+<main>
+
+<!-- ============================ 1. MEMORIA ============================ -->
+<section class="bloque" id="memoria">
+  <div class="titulo"><span class="num">01</span><h2>¿Entra el modelo en mi netbook?</h2></div>
+  <p class="pregunta">Un modelo es, sobre todo, una lista enorme de números (parámetros). El archivo pesa aproximadamente parámetros × bits por parámetro ÷ 8. Elegí un modelo y una “compresión” y mirá si entra en la memoria libre.</p>
+  <div class="campos">
+    <label>Modelo
+      <select id="mem-modelo">
+        <option value="0.6">Qwen3-0.6B (0,6 mil millones)</option>
+        <option value="1.24">Llama 3.2 1B (1,24 mil millones)</option>
+        <option value="1.78" selected>DeepSeek-R1-Distill-Qwen-1.5B (1,78 mil millones)</option>
+        <option value="1.7">Qwen3-1.7B (1,7 mil millones)</option>
+        <option value="3.8">Phi-4-mini (3,8 mil millones)</option>
+      </select></label>
+    <label>Cuantización (bits por parámetro)
+      <select id="mem-bits">
+        <option value="3.9">Q3_K_M (≈ 3,9 bits)</option>
+        <option value="4.8" selected>Q4_K_M (≈ 4,8 bits) · recomendada</option>
+        <option value="8.5">Q8_0 (≈ 8,5 bits)</option>
+        <option value="16">F16 (16 bits, sin comprimir)</option>
+      </select></label>
+    <label>RAM total de la netbook (GB)<input id="mem-ram" type="number" min="1" max="64" step="1" value="4"></label>
+    <label>RAM que usa Windows con todo cerrado (GB)<input id="mem-win" type="number" min="0.5" max="16" step="0.1" value="2.2"></label>
+  </div>
+  <div class="medidor" id="mem-medidor"></div>
+  <div class="veredicto" id="mem-veredicto"></div>
+  <div class="formula" id="mem-cuenta"></div>
+  <p class="nota">Estimación para comparar: el uso real depende del programa y del largo de la conversación. Medilo en el Administrador de tareas con el modelo cargado. Ejemplo real: el archivo Q4_K_M de DeepSeek-R1-Distill-Qwen-1.5B pesa 1,12 GB.</p>
+</section>
+
+<!-- ============================ 2. PALABRA ============================ -->
+<section class="bloque" id="palabra">
+  <div class="titulo"><span class="num">02</span><h2>¿Cómo escribe un LLM? Una palabra por vez</h2></div>
+  <p class="pregunta">Un modelo de lenguaje no “sabe” la respuesta: calcula un puntaje para cada palabra posible, los convierte en probabilidades con <b>softmax</b> (la misma cuenta que hace nuestra red en la placa) y elige una. La <b>temperatura</b> decide cuánto se arriesga.</p>
+  <div class="frase">El LED azul del NodeMCU se enciende cuando el pin está en <b id="pal-elegida">___</b></div>
+  <div class="control">
+    <label for="pal-temp">Temperatura <output id="pal-temp-out">0,7</output></label>
+    <input type="range" id="pal-temp" min="0.1" max="2" step="0.1" value="0.7">
+  </div>
+  <div class="palabras" id="pal-lista"></div>
+  <div class="chips">
+    <button class="boton" id="pal-elegir">Elegir una palabra</button>
+    <button class="boton sec" id="pal-veinte">Elegir 20 veces</button>
+  </div>
+  <p class="nota" id="pal-resultado"></p>
+  <p class="idea"><strong>Para probar en LM Studio o KoboldCpp:</strong> hacé la misma pregunta con temperatura 0,1 y con 1,5. ¿Cuál responde siempre igual? ¿Cuál inventa más? Los puntajes de esta frase son de ejemplo, elegidos para la clase.</p>
+</section>
+
+<!-- ============================ 3. ENTRENADOR ============================ -->
+<section class="bloque" id="entrenador">
+  <div class="titulo"><span class="num">03</span><h2>Entrenar la red: 27 números que aprenden de los datos</h2></div>
+  <p class="pregunta">Cada punto es una medición: temperatura, humedad y cómo se sentía el grupo. Tocá el plano para agregar puntos, entrená y mirá cómo los colores de fondo (lo que la red “piensa”) se acomodan a los datos. Al final, copiá <code>pesos_red.h</code> y cargalo en la placa.</p>
+
+  <div class="entrenador">
+    <div>
+      <canvas id="plano" width="1120" height="800" aria-label="Plano temperatura y humedad con los datos y lo que piensa la red"></canvas>
+      <p class="nota" id="hover">Pasá el mouse por el plano para ver la cuenta en ese punto.</p>
+    </div>
+    <div class="lateral">
+      <div class="control">
+        <label>Al tocar el plano, agregar un punto de</label>
+        <div class="chips" id="clase-elegida">
+          <button class="chip clase-chip" data-c="0" aria-pressed="false">Frío</button>
+          <button class="chip clase-chip" data-c="1" aria-pressed="true">Agradable</button>
+          <button class="chip clase-chip" data-c="2" aria-pressed="false">Calor</button>
+        </div>
+        <p class="nota">Tocá un punto existente para borrarlo.</p>
+      </div>
+      <div class="control">
+        <label>Agregar una lectura del aula</label>
+        <div class="lectura-aula">
+          <input id="aula-t" type="number" step="0.1" value="24" aria-label="Temperatura"> °C
+          <input id="aula-h" type="number" step="1" value="55" aria-label="Humedad"> %
+          <button class="boton sec" id="aula-agregar">Agregar</button>
+        </div>
+      </div>
+      <div class="chips">
+        <button class="boton" id="btn-entrenar">Entrenar</button>
+        <button class="boton sec" id="btn-reiniciar">Reiniciar pesos</button>
+        <button class="boton sec" id="btn-ejemplo">Datos de ejemplo</button>
+        <button class="boton sec" id="btn-borrar">Borrar datos</button>
+      </div>
+      <div class="stats">
+        <div>Pasos<b id="st-pasos">0</b></div>
+        <div>Puntos<b id="st-puntos">0</b></div>
+        <div>Pérdida<b id="st-perdida">-</b></div>
+        <div>Aciertos<b id="st-precision">-</b></div>
+      </div>
+      <canvas id="curva" width="600" height="140" aria-label="Pérdida a lo largo del entrenamiento"></canvas>
+      <div class="cuenta" id="cuenta"></div>
+    </div>
+  </div>
+
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Los pesos entrenados</strong> · <code>pesos_red.h</code><br><span class="nota">Se actualiza al entrenar. Reemplazá el archivo de la carpeta del programa por este y volvé a cargarlo en la placa.</span></div>
+      <button class="boton sec" type="button" id="copiar-pesos">Copiar pesos_red.h</button>
+    </div>
+    <textarea id="exportado" readonly aria-label="Archivo pesos_red.h generado"></textarea>
+  </div>
+</section>
+
+<!-- ============================ 4. PLACA ============================ -->
+<section class="bloque" id="placa">
+  <div class="titulo"><span class="num">04</span><h2>La red en la placa: DHT11 + LED RGB</h2></div>
+  <p class="pregunta">El ESP8266 lee el DHT11 cada 2 segundos, hace la cuenta de la red y mezcla los colores del LED según las probabilidades: azul = frío, verde = agradable, rojo = calor. En la página del celular se ve toda la cuenta.</p>
+
+  <div class="esquema">
+    <div class="esquema-titulo">Esquema de conexionado</div>
+    <div class="esquema-dibujo" id="esq-ia"></div>
+    <ul class="esquema-leyenda">
+      <li><b style="color:#c2185b">D2</b> → pata DATA del DHT11 · VCC → riel + → <b style="color:#d62828">3V3</b> · GND → riel − → <b>GND</b></li>
+      <li><b style="color:#e8891a">D5</b> → 150 Ω → pata R · <b style="color:#2f9e44">D6</b> → 100 Ω → pata G · <b style="color:#2b6fd6">D7</b> → 100 Ω → pata B · pata común → <b>GND</b></li>
+      <li>El orden de las patas del módulo DHT11 cambia según el fabricante: leé las marcas impresas en el módulo antes de conectar.</li>
+    </ul>
+  </div>
+
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Programa principal</strong> · <code>c3_red_neuronal.ino</code><br><span class="nota">Necesita la biblioteca “DHT sensor library” de Adafruit. Va junto con <code>pesos_red.h</code> y <code>pagina_web.h</code> en la misma carpeta.</span></div>
+      <button class="boton sec copiar" type="button" data-objetivo="cod-main">Copiar código</button>
+    </div>
+    <pre class="fuente" id="cod-main"><code>/*
+  ==========================================================================
+  CLASE 3 - Una red neuronal dentro de la placa
+  NodeMCU V3 (ESP8266) - Placa en el IDE: &quot;NodeMCU 1.0 (ESP-12E Module)&quot;
+  ==========================================================================
+
+  QUÉ HACE
+    Lee temperatura y humedad con el DHT11 y una red neuronal de 27 números
+    decide si el ambiente está frío, agradable o caluroso. Sin PC ni internet:
+    toda la cuenta la hace el ESP8266.
+
+    El LED RGB muestra lo que &quot;piensa&quot; la red mezclando colores:
+      azul = frío · verde = agradable · rojo = calor
+    Si la red duda entre dos clases, se ven los dos colores mezclados.
+
+    La placa crea su red WiFi (IA-XXXX, clave robotica2026). En la página
+    http://192.168.4.1 se ve toda la cuenta paso a paso, y se pueden probar
+    valores a mano sin el sensor.
+
+  ARCHIVOS DE ESTE PROGRAMA (los tres en la misma carpeta)
+    c3_red_neuronal.ino -&gt; este archivo: sensor, cuenta de la red, LED, web
+    pesos_red.h         -&gt; los 27 números que aprendió la red
+    pagina_web.h        -&gt; la página que ve el celular
+
+  CONEXIONADO
+    DHT11:  VCC -&gt; 3V3 · GND -&gt; GND · DATA -&gt; D2 (GPIO4)
+    LED RGB (cátodo común): D5 -&gt; 150 ohm -&gt; R · D6 -&gt; 100 ohm -&gt; G ·
+                            D7 -&gt; 100 ohm -&gt; B · común -&gt; GND
+
+  BIBLIOTECA NECESARIA
+    &quot;DHT sensor library&quot; de Adafruit (el IDE ofrece instalar también
+    &quot;Adafruit Unified Sensor&quot;: aceptar).
+  ==========================================================================
+*/
+
+#include &lt;ESP8266WiFi.h&gt;
+#include &lt;ESP8266WebServer.h&gt;
+#include &lt;DHT.h&gt;
+#include &quot;pesos_red.h&quot;
+#include &quot;pagina_web.h&quot;
+
+// ==========================================================================
+// 1. CONFIGURACIÓN
+// ==========================================================================
+const char*   CLAVE_WIFI  = &quot;robotica2026&quot;;
+const bool    ANODO_COMUN = false;     // true si el LED RGB es de ánodo común
+const uint8_t PIN_DHT = D2;
+const uint8_t PIN_R = D5, PIN_G = D6, PIN_B = D7;
+const uint32_t INTERVALO_LECTURA = 2000;   // el DHT11 no lee más rápido que 1 vez por segundo
+
+DHT dht(PIN_DHT, DHT11);
+ESP8266WebServer servidor(80);
+
+// ==========================================================================
+// 2. ESTADO
+// ==========================================================================
+float temperatura = NAN, humedad = NAN;   // última lectura del sensor
+bool  modoManual = false;                 // true = probar valores a mano
+float tManual = 22.0, hManual = 50.0;
+
+// Los números intermedios de la última cuenta (para mostrarlos en la página)
+float x[2];        // entradas normalizadas
+float h[4];        // salidas de las 4 neuronas ocultas
+float z[3];        // puntajes de las 3 salidas, antes del softmax
+float p[3];        // probabilidades: frío, agradable, calor
+int   clase = -1;
+
+const char* NOMBRES[3] = {&quot;Frío&quot;, &quot;Agradable&quot;, &quot;Calor&quot;};
+
+// ==========================================================================
+// 3. LA RED NEURONAL: toda la &quot;inteligencia&quot; está en esta función
+// ==========================================================================
+void calcularRed(float T, float H) {
+  // a) Normalizar: llevar temperatura y humedad a números cercanos a 0
+  x[0] = (T - T_MEDIA) / T_ESCALA;
+  x[1] = (H - H_MEDIA) / H_ESCALA;
+
+  // b) Capa oculta: cada neurona suma &quot;entrada x peso&quot;, suma el sesgo
+  //    y pasa el resultado por tanh (queda entre -1 y 1)
+  for (int i = 0; i &lt; 4; i++) {
+    float suma = PESOS_OCULTA[i][0] * x[0] + PESOS_OCULTA[i][1] * x[1] + SESGOS_OCULTA[i];
+    h[i] = tanh(suma);
+  }
+
+  // c) Capa de salida: un puntaje para cada clase
+  for (int k = 0; k &lt; 3; k++) {
+    float suma = SESGOS_SALIDA[k];
+    for (int j = 0; j &lt; 4; j++) suma += PESOS_SALIDA[k][j] * h[j];
+    z[k] = suma;
+  }
+
+  // d) Softmax: convertir los puntajes en probabilidades que suman 1
+  float maximo = max(z[0], max(z[1], z[2]));
+  float e[3], total = 0;
+  for (int k = 0; k &lt; 3; k++) { e[k] = exp(z[k] - maximo); total += e[k]; }
+  for (int k = 0; k &lt; 3; k++) p[k] = e[k] / total;
+
+  // e) La clase elegida es la de mayor probabilidad
+  clase = 0;
+  for (int k = 1; k &lt; 3; k++) if (p[k] &gt; p[clase]) clase = k;
+}
+
+// ==========================================================================
+// 4. EL LED RGB: mezcla de colores según las probabilidades
+// ==========================================================================
+void mostrarEnLed() {
+  uint8_t rojo  = (uint8_t)(p[2] * 255);   // calor
+  uint8_t verde = (uint8_t)(p[1] * 255);   // agradable
+  uint8_t azul  = (uint8_t)(p[0] * 255);   // frío
+  if (ANODO_COMUN) { rojo = 255 - rojo; verde = 255 - verde; azul = 255 - azul; }
+  analogWrite(PIN_R, rojo);
+  analogWrite(PIN_G, verde);
+  analogWrite(PIN_B, azul);
+}
+
+// ==========================================================================
+// 5. PÁGINA WEB
+// ==========================================================================
+String numeroJson(float v, int decimales) {
+  if (isnan(v)) return &quot;null&quot;;
+  return String(v, decimales);
+}
+
+void responderEstado() {
+  String j = &quot;{&quot;;
+  j += &quot;\&quot;temperatura\&quot;:&quot; + numeroJson(temperatura, 1);
+  j += &quot;,\&quot;humedad\&quot;:&quot; + numeroJson(humedad, 1);
+  j += &quot;,\&quot;manual\&quot;:&quot; + String(modoManual ? &quot;true&quot; : &quot;false&quot;);
+  j += &quot;,\&quot;tManual\&quot;:&quot; + String(tManual, 1);
+  j += &quot;,\&quot;hManual\&quot;:&quot; + String(hManual, 1);
+  j += &quot;,\&quot;x\&quot;:[&quot; + String(x[0], 4) + &quot;,&quot; + String(x[1], 4) + &quot;]&quot;;
+  j += &quot;,\&quot;h\&quot;:[&quot;;
+  for (int i = 0; i &lt; 4; i++) j += (i ? &quot;,&quot; : &quot;&quot;) + String(h[i], 4);
+  j += &quot;],\&quot;z\&quot;:[&quot;;
+  for (int k = 0; k &lt; 3; k++) j += (k ? &quot;,&quot; : &quot;&quot;) + String(z[k], 4);
+  j += &quot;],\&quot;p\&quot;:[&quot;;
+  for (int k = 0; k &lt; 3; k++) j += (k ? &quot;,&quot; : &quot;&quot;) + String(p[k], 4);
+  j += &quot;],\&quot;clase\&quot;:&quot; + String(clase);
+  j += &quot;}&quot;;
+  servidor.sendHeader(&quot;Cache-Control&quot;, &quot;no-store&quot;);
+  servidor.send(200, &quot;application/json&quot;, j);
+}
+
+void responderManual() {
+  if (servidor.hasArg(&quot;t&quot;)) tManual = servidor.arg(&quot;t&quot;).toFloat();
+  if (servidor.hasArg(&quot;h&quot;)) hManual = servidor.arg(&quot;h&quot;).toFloat();
+  modoManual = true;
+  calcularRed(tManual, hManual);
+  mostrarEnLed();
+  responderEstado();
+}
+
+void responderSensor() {
+  modoManual = false;
+  if (!isnan(temperatura)) { calcularRed(temperatura, humedad); mostrarEnLed(); }
+  responderEstado();
+}
+
+// ==========================================================================
+// 6. SETUP
+// ==========================================================================
+void setup() {
+  Serial.begin(115200);
+  delay(300);
+  Serial.println();
+  Serial.println(F(&quot;=== Clase 3 - Una red neuronal dentro de la placa ===&quot;));
+
+  analogWriteRange(255);
+  analogWriteFreq(1000);
+  pinMode(PIN_R, OUTPUT); pinMode(PIN_G, OUTPUT); pinMode(PIN_B, OUTPUT);
+  dht.begin();
+
+  // Arranca mostrando la cuenta con valores de prueba
+  calcularRed(tManual, hManual);
+  mostrarEnLed();
+
+  // Red WiFi propia: &quot;IA-&quot; + los últimos 4 dígitos de la MAC
+  uint8_t mac[6];
+  WiFi.macAddress(mac);
+  char nombre[12];
+  snprintf(nombre, sizeof(nombre), &quot;IA-%02X%02X&quot;, mac[4], mac[5]);
+  WiFi.mode(WIFI_AP);
+  WiFi.softAP(nombre, CLAVE_WIFI);
+  Serial.printf(&quot;Red WiFi: %s  clave: %s  -&gt;  http://192.168.4.1\n&quot;, nombre, CLAVE_WIFI);
+
+  servidor.on(&quot;/&quot;,       []() { servidor.send_P(200, &quot;text/html&quot;, PAGINA_WEB); });
+  servidor.on(&quot;/estado&quot;, responderEstado);
+  servidor.on(&quot;/manual&quot;, responderManual);
+  servidor.on(&quot;/sensor&quot;, responderSensor);
+  servidor.begin();
+}
+
+// ==========================================================================
+// 7. LOOP: leer el sensor y pensar cada 2 segundos
+// ==========================================================================
+uint32_t ultimaLectura = 0;
+
+void loop() {
+  servidor.handleClient();
+
+  if (millis() - ultimaLectura &lt; INTERVALO_LECTURA) return;
+  ultimaLectura = millis();
+
+  float T = dht.readTemperature();
+  float H = dht.readHumidity();
+  if (isnan(T) || isnan(H)) {
+    Serial.println(F(&quot;No se pudo leer el DHT11: revisar el conexionado.&quot;));
+    return;
+  }
+  temperatura = T;
+  humedad = H;
+
+  if (!modoManual) {
+    calcularRed(temperatura, humedad);
+    mostrarEnLed();
+  }
+
+  Serial.printf(&quot;T=%.1f °C  H=%.0f %%  -&gt;  frío %.0f %% · agradable %.0f %% · calor %.0f %%  =&gt;  %s%s\n&quot;,
+                temperatura, humedad, p[0] * 100, p[1] * 100, p[2] * 100, NOMBRES[clase],
+                modoManual ? &quot;  (modo manual: el LED muestra los valores de la página)&quot; : &quot;&quot;);
+}
+</code></pre>
+  </div>
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Pesos por defecto</strong> · <code>pesos_red.h</code><br><span class="nota">Entrenados con los datos de ejemplo. Para usar los de tu grupo, copiá los del entrenador.</span></div>
+      <button class="boton sec copiar" type="button" data-objetivo="cod-pesos">Copiar código</button>
+    </div>
+    <pre class="fuente" id="cod-pesos"><code>/*
+  ==========================================================================
+  pesos_red.h - Los 27 números que aprendió la red (Clase 3)
+  ==========================================================================
+  Generado por el entrenador de la Clase 3 · datos de ejemplo, 3000 pasos, precisión 98 %
+  Para usar otros pesos: entrenar de nuevo en el simulador, copiar el
+  archivo completo y reemplazar este.
+
+  Red 2-4-3: 2 entradas (temperatura, humedad), 4 neuronas ocultas (tanh)
+  y 3 salidas (frío, agradable, calor) con softmax.
+  Parámetros: 4x2 + 4 + 3x4 + 3 = 27
+  ==========================================================================
+*/
+#pragma once
+
+// Normalización: llevar las entradas a números cercanos a 0
+const float T_MEDIA = 25.0f, T_ESCALA = 10.0f;   // x0 = (T - 25) / 10
+const float H_MEDIA = 50.0f, H_ESCALA = 25.0f;   // x1 = (H - 50) / 25
+
+// Capa oculta: 4 neuronas, cada una con 2 pesos y 1 sesgo
+const float PESOS_OCULTA[4][2] = {
+  {-2.7615f,-0.4971f },   // neurona 1
+  { 1.5380f, 0.2808f },   // neurona 2
+  { 1.0472f, 0.1778f },   // neurona 3
+  { 5.3579f,-0.0522f }   // neurona 4
+};
+const float SESGOS_OCULTA[4] = { 0.5945f, 0.3319f, 0.1406f, 4.2508f };
+
+// Capa de salida: 3 neuronas (frío, agradable, calor), cada una con 4 pesos y 1 sesgo
+const float PESOS_SALIDA[3][4] = {
+  { 1.3739f,-2.1974f,-1.5211f,-6.0807f },   // frío
+  { 3.0849f, 0.1750f,-0.3376f, 4.4098f },   // agradable
+  {-4.2818f, 2.4751f, 0.6608f, 1.6738f }   // calor
+};
+const float SESGOS_SALIDA[3] = {-0.4389f, 0.4627f,-0.0238f };
+</code></pre>
+  </div>
+  <div class="codigo">
+    <div class="codigo-barra">
+      <div><strong>Página del celular</strong> · <code>pagina_web.h</code><br><span class="nota">Red WiFi <code>IA-XXXX</code>, clave <code>robotica2026</code>, página en <code>192.168.4.1</code>.</span></div>
+      <button class="boton sec copiar" type="button" data-objetivo="cod-pagina">Copiar código</button>
+    </div>
+    <pre class="fuente" id="cod-pagina"><code>/*
+  ==========================================================================
+  pagina_web.h - La página que ve el celular (Clase 3)
+  ==========================================================================
+  Muestra la cuenta completa de la red, paso a paso, con los números
+  reales que calcula la placa. Cada 2 segundos pide /estado.
+
+    /estado          -&gt; todos los números de la última cuenta
+    /manual?t=30&amp;h=60 -&gt; probar la red con valores escritos a mano
+    /sensor          -&gt; volver a usar el DHT11
+  ==========================================================================
+*/
+#pragma once
+
+const char PAGINA_WEB[] PROGMEM = R&quot;rawliteral(
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;es&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;title&gt;Red neuronal en la placa&lt;/title&gt;
+&lt;style&gt;
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 12px; background: #111; color: #eee; font-family: Arial, Helvetica, sans-serif; max-width: 560px; margin: auto; }
+  h1 { font-size: 1.25em; margin: 4px 0; }
+  h2 { font-size: 1em; margin: 0 0 8px; color: #9cf; }
+  .tarjeta { background: #1b1f22; border: 1px solid #2c3236; border-radius: 12px; padding: 12px; margin-top: 12px; }
+  .grande { font-size: 2.2em; font-weight: bold; font-family: monospace; }
+  .fila { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .barra { height: 22px; background: #0e1113; border-radius: 6px; overflow: hidden; flex: 1; }
+  .barra div { height: 100%; }
+  .num { font-family: monospace; color: #fc6; }
+  table { width: 100%; border-collapse: collapse; font-size: .9em; }
+  td { padding: 4px; border-bottom: 1px solid #2c3236; font-family: monospace; }
+  input[type=range] { width: 100%; }
+  button { border: none; border-radius: 8px; padding: 9px 12px; font-weight: bold; background: #2a7fb8; color: #fff; }
+  button.gris { background: #444; }
+  .sub { color: #999; font-size: .85em; }
+  #foco { width: 70px; height: 70px; border-radius: 50%; border: 3px solid #333; }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Red neuronal en la placa&lt;/h1&gt;
+  &lt;div class=&quot;sub&quot;&gt;27 números deciden: ¿frío, agradable o calor?&lt;/div&gt;
+
+  &lt;div class=&quot;tarjeta&quot;&gt;
+    &lt;h2&gt;1. Lo que mide el DHT11&lt;/h2&gt;
+    &lt;div class=&quot;fila&quot;&gt;
+      &lt;div&gt;&lt;div class=&quot;grande&quot; id=&quot;t&quot;&gt;--&lt;/div&gt;&lt;div class=&quot;sub&quot;&gt;temperatura&lt;/div&gt;&lt;/div&gt;
+      &lt;div&gt;&lt;div class=&quot;grande&quot; id=&quot;hu&quot;&gt;--&lt;/div&gt;&lt;div class=&quot;sub&quot;&gt;humedad&lt;/div&gt;&lt;/div&gt;
+      &lt;div id=&quot;foco&quot; title=&quot;Color del LED&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;sub&quot; id=&quot;modo&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;tarjeta&quot;&gt;
+    &lt;h2&gt;2. Lo que decide la red&lt;/h2&gt;
+    &lt;div id=&quot;salidas&quot;&gt;&lt;/div&gt;
+    &lt;div style=&quot;margin-top:8px&quot;&gt;Decisión: &lt;b id=&quot;clase&quot;&gt;-&lt;/b&gt;&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;tarjeta&quot;&gt;
+    &lt;h2&gt;3. La cuenta, paso a paso&lt;/h2&gt;
+    &lt;table&gt;
+      &lt;tr&gt;&lt;td&gt;Entradas normalizadas&lt;/td&gt;&lt;td class=&quot;num&quot; id=&quot;cx&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;4 neuronas ocultas (tanh)&lt;/td&gt;&lt;td class=&quot;num&quot; id=&quot;ch&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;3 puntajes de salida&lt;/td&gt;&lt;td class=&quot;num&quot; id=&quot;cz&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+      &lt;tr&gt;&lt;td&gt;Softmax (probabilidades)&lt;/td&gt;&lt;td class=&quot;num&quot; id=&quot;cp&quot;&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;/table&gt;
+    &lt;div class=&quot;sub&quot; style=&quot;margin-top:6px&quot;&gt;x0 = (T − 25) / 10 · x1 = (H − 50) / 25&lt;/div&gt;
+  &lt;/div&gt;
+
+  &lt;div class=&quot;tarjeta&quot;&gt;
+    &lt;h2&gt;4. Probar a mano&lt;/h2&gt;
+    &lt;div&gt;Temperatura: &lt;b id=&quot;vt&quot;&gt;22&lt;/b&gt; °C&lt;/div&gt;
+    &lt;input type=&quot;range&quot; id=&quot;rt&quot; min=&quot;0&quot; max=&quot;45&quot; step=&quot;0.5&quot; value=&quot;22&quot;&gt;
+    &lt;div&gt;Humedad: &lt;b id=&quot;vh&quot;&gt;50&lt;/b&gt; %&lt;/div&gt;
+    &lt;input type=&quot;range&quot; id=&quot;rh&quot; min=&quot;10&quot; max=&quot;95&quot; step=&quot;1&quot; value=&quot;50&quot;&gt;
+    &lt;div class=&quot;fila&quot; style=&quot;margin-top:8px&quot;&gt;
+      &lt;button onclick=&quot;probar()&quot;&gt;Probar estos valores&lt;/button&gt;
+      &lt;button class=&quot;gris&quot; onclick=&quot;pedir(&#x27;/sensor&#x27;)&quot;&gt;Volver al sensor&lt;/button&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+
+&lt;script&gt;
+  var COLORES = [&#x27;#3a7bff&#x27;, &#x27;#2fbf55&#x27;, &#x27;#ff4a3d&#x27;];
+  var NOMBRES = [&#x27;Frío&#x27;, &#x27;Agradable&#x27;, &#x27;Calor&#x27;];
+  function fmt(v, d) { return v === null ? &#x27;--&#x27; : v.toFixed(d).replace(&#x27;.&#x27;, &#x27;,&#x27;); }
+  function lista(a, d) { return a.map(function (v) { return fmt(v, d); }).join(&#x27;  &#x27;); }
+
+  function mostrar(e) {
+    document.getElementById(&#x27;t&#x27;).textContent = fmt(e.temperatura, 1) + &#x27;°&#x27;;
+    document.getElementById(&#x27;hu&#x27;).textContent = fmt(e.humedad, 0) + &#x27;%&#x27;;
+    document.getElementById(&#x27;modo&#x27;).textContent = e.manual
+      ? &#x27;Modo manual: la red usa &#x27; + fmt(e.tManual, 1) + &#x27; °C y &#x27; + fmt(e.hManual, 0) + &#x27; %&#x27;
+      : &#x27;Usando el sensor (lee cada 2 segundos)&#x27;;
+    var r = Math.round(e.p[2] * 255), g = Math.round(e.p[1] * 255), b = Math.round(e.p[0] * 255);
+    var foco = document.getElementById(&#x27;foco&#x27;);
+    foco.style.background = &#x27;rgb(&#x27; + r + &#x27;,&#x27; + g + &#x27;,&#x27; + b + &#x27;)&#x27;;
+    foco.style.boxShadow = &#x27;0 0 24px rgb(&#x27; + r + &#x27;,&#x27; + g + &#x27;,&#x27; + b + &#x27;)&#x27;;
+
+    var s = document.getElementById(&#x27;salidas&#x27;); s.innerHTML = &#x27;&#x27;;
+    for (var k = 0; k &lt; 3; k++) {
+      var fila = document.createElement(&#x27;div&#x27;); fila.className = &#x27;fila&#x27;; fila.style.marginTop = &#x27;6px&#x27;;
+      fila.innerHTML = &#x27;&lt;span style=&quot;width:80px&quot;&gt;&#x27; + NOMBRES[k] + &#x27;&lt;/span&gt;&lt;div class=&quot;barra&quot;&gt;&lt;div style=&quot;width:&#x27; +
+        (e.p[k] * 100).toFixed(1) + &#x27;%;background:&#x27; + COLORES[k] + &#x27;&quot;&gt;&lt;/div&gt;&lt;/div&gt;&lt;span class=&quot;num&quot; style=&quot;width:56px;text-align:right&quot;&gt;&#x27; +
+        fmt(e.p[k] * 100, 1) + &#x27;%&lt;/span&gt;&#x27;;
+      s.appendChild(fila);
+    }
+    document.getElementById(&#x27;clase&#x27;).textContent = e.clase &gt;= 0 ? NOMBRES[e.clase] : &#x27;-&#x27;;
+    document.getElementById(&#x27;cx&#x27;).textContent = lista(e.x, 2);
+    document.getElementById(&#x27;ch&#x27;).textContent = lista(e.h, 2);
+    document.getElementById(&#x27;cz&#x27;).textContent = lista(e.z, 2);
+    document.getElementById(&#x27;cp&#x27;).textContent = lista(e.p, 3);
+  }
+
+  function pedir(url) { return fetch(url).then(function (r) { return r.json(); }).then(mostrar).catch(function () {}); }
+  function probar() { pedir(&#x27;/manual?t=&#x27; + document.getElementById(&#x27;rt&#x27;).value + &#x27;&amp;h=&#x27; + document.getElementById(&#x27;rh&#x27;).value); }
+  document.getElementById(&#x27;rt&#x27;).oninput = function () { document.getElementById(&#x27;vt&#x27;).textContent = this.value; };
+  document.getElementById(&#x27;rh&#x27;).oninput = function () { document.getElementById(&#x27;vh&#x27;).textContent = this.value; };
+
+  pedir(&#x27;/estado&#x27;);
+  setInterval(function () { pedir(&#x27;/estado&#x27;); }, 2000);
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+)rawliteral&quot;;
+</code></pre>
+  </div>
+</section>
+
+</main>
+<footer>Programas compilados con el núcleo esp8266 3.1.2 y la biblioteca DHT sensor library 1.4.7. Los tamaños de los modelos son estimaciones para comparar.</footer>
+
+<script src="red.js"></script>
+<script src="esquemas.js"></script>
+<script>
+(function () {
+  "use strict";
+  function q(id) { return document.getElementById(id); }
+  function coma(v, d) { return v.toFixed(d).replace(".", ","); }
+  var R = window.RedClase3;
+
+  /* ================= 1. MEMORIA ================= */
+  function calcularMemoria() {
+    var params = +q("mem-modelo").value, bits = +q("mem-bits").value;
+    var ram = +q("mem-ram").value || 0, win = +q("mem-win").value || 0;
+    var archivo = params * bits / 8;               // GB (mil millones de parámetros × bits / 8)
+    var extra = 0.6;                               // contexto y programa (aproximado)
+    var necesita = archivo + extra;
+    var libre = Math.max(0, ram - win);
+    var max = Math.max(ram, necesita + win, 1);
+    var filas = [
+      ["Archivo del modelo", archivo, "#1f6f8b"],
+      ["Necesita en RAM", necesita, "#c98a12"],
+      ["RAM libre", libre, "#2e8b57"]
+    ];
+    q("mem-medidor").innerHTML = filas.map(function (f) {
+      return '<div class="fila-barra"><span>' + f[0] + '</span><div class="barra-fondo"><div style="width:' + Math.min(100, f[1] / max * 100) +
+        '%;background:' + f[2] + '"></div></div><span class="valor">' + coma(f[1], 2) + ' GB</span></div>';
+    }).join("");
+    var v = q("mem-veredicto");
+    if (necesita <= libre * 0.8) { v.textContent = "Entra con margen"; v.style.color = "var(--ok)"; }
+    else if (necesita <= libre) { v.textContent = "Entra justo: cerrá todos los demás programas"; v.style.color = "var(--warn)"; }
+    else { v.textContent = "No entra: elegí un modelo más chico o más comprimido"; v.style.color = "var(--bad)"; }
+    q("mem-cuenta").textContent = "Archivo ≈ " + coma(params, 2) + " mil millones × " + coma(bits, 1) + " bits ÷ 8 = " + coma(archivo, 2) +
+      " GB · En RAM ≈ archivo + 0,6 GB = " + coma(necesita, 2) + " GB · Libre = " + coma(ram, 1) + " − " + coma(win, 1) + " = " + coma(libre, 2) + " GB";
+  }
+  ["mem-modelo", "mem-bits", "mem-ram", "mem-win"].forEach(function (id) { q(id).addEventListener("input", calcularMemoria); });
+  calcularMemoria();
+
+  /* ================= 2. PRÓXIMA PALABRA ================= */
+  var PALABRAS = [["BAJO", 2.3], ["ALTO", 1.7], ["cero", 0.6], ["LOW", 0.2], ["reposo", -0.6], ["llamas", -2.4]];
+  var elegida = -1;
+  function probabilidades() {
+    var T = +q("pal-temp").value;
+    var z = PALABRAS.map(function (p) { return p[1] / T; });
+    var m = Math.max.apply(null, z);
+    var e = z.map(function (v) { return Math.exp(v - m); });
+    var s = e.reduce(function (a, b) { return a + b; }, 0);
+    return e.map(function (v) { return v / s; });
+  }
+  function dibujarPalabras() {
+    q("pal-temp-out").textContent = coma(+q("pal-temp").value, 1);
+    var p = probabilidades();
+    q("pal-lista").innerHTML = PALABRAS.map(function (w, i) {
+      return '<div class="palabra' + (i === elegida ? " elegida" : "") + '"><span>' + w[0] + '</span><div class="barra-fondo"><div style="width:' +
+        (p[i] * 100).toFixed(1) + '%"></div></div><span class="valor" style="font-family:var(--font-mono);text-align:right">' + coma(p[i] * 100, 1) + ' %</span></div>';
+    }).join("");
+  }
+  function sortear() {
+    var p = probabilidades(), r = Math.random(), a = 0;
+    for (var i = 0; i < p.length; i++) { a += p[i]; if (r <= a) return i; }
+    return p.length - 1;
+  }
+  q("pal-temp").addEventListener("input", dibujarPalabras);
+  q("pal-elegir").addEventListener("click", function () {
+    elegida = sortear(); q("pal-elegida").textContent = PALABRAS[elegida][0]; dibujarPalabras();
+    q("pal-resultado").textContent = "";
+  });
+  q("pal-veinte").addEventListener("click", function () {
+    var cuenta = PALABRAS.map(function () { return 0; });
+    for (var n = 0; n < 20; n++) cuenta[sortear()]++;
+    q("pal-resultado").textContent = "En 20 intentos: " + PALABRAS.map(function (w, i) { return w[0] + " " + cuenta[i]; }).filter(function (t, i) { return cuenta[i] > 0; }).join(" · ");
+  });
+  dibujarPalabras();
+
+  /* ================= 3. ENTRENADOR ================= */
+  var plano = q("plano"), ctx = plano.getContext("2d");
+  var W = plano.width, H = plano.height;
+  var M = { l: 70, r: 20, t: 20, b: 60 };
+  var T_MIN = 0, T_MAX = 45, H_MIN = 10, H_MAX = 95;
+  var COLORES = ["#3a7bff", "#2f9e44", "#e03a2f"];
+  var semilla = 7;
+  var red = R.nuevaRed(semilla);
+  var datos = R.datosDeEjemplo();
+  var pasos = 0, entrenando = false, historia = [], ultimo = null;
+  var claseElegida = 1;
+
+  function aX(t) { return M.l + (t - T_MIN) / (T_MAX - T_MIN) * (W - M.l - M.r); }
+  function aY(h) { return H - M.b - (h - H_MIN) / (H_MAX - H_MIN) * (H - M.t - M.b); }
+  function deX(x) { return T_MIN + (x - M.l) / (W - M.l - M.r) * (T_MAX - T_MIN); }
+  function deY(y) { return H_MIN + (H - M.b - y) / (H - M.t - M.b) * (H_MAX - H_MIN); }
+
+  function dibujarPlano() {
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, W, H);
+    var celda = 16;
+    for (var x = M.l; x < W - M.r; x += celda) {
+      for (var y = M.t; y < H - M.b; y += celda) {
+        var c = R.calcular(red, deX(x + celda / 2), deY(y + celda / 2));
+        // mezcla suave de los tres colores de clase
+        var rr = 58 * c.p[0] + 47 * c.p[1] + 224 * c.p[2];
+        var gg = 123 * c.p[0] + 158 * c.p[1] + 58 * c.p[2];
+        var bb = 255 * c.p[0] + 68 * c.p[1] + 47 * c.p[2];
+        ctx.fillStyle = "rgba(" + Math.round(rr) + "," + Math.round(gg) + "," + Math.round(bb) + ",0.28)";
+        ctx.fillRect(x, y, celda, celda);
+      }
+    }
+    // ejes
+    ctx.strokeStyle = "#c9ccc6"; ctx.lineWidth = 1;
+    ctx.fillStyle = "#5d6762"; ctx.font = "22px IBM Plex Mono, monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "top";
+    for (var t = 0; t <= 45; t += 5) {
+      var px = aX(t); ctx.beginPath(); ctx.moveTo(px, M.t); ctx.lineTo(px, H - M.b); ctx.stroke();
+      ctx.fillText(t + "°", px, H - M.b + 8);
+    }
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    for (var h = 10; h <= 90; h += 20) {
+      var py = aY(h); ctx.beginPath(); ctx.moveTo(M.l, py); ctx.lineTo(W - M.r, py); ctx.stroke();
+      ctx.fillText(h + "%", M.l - 8, py);
+    }
+    ctx.textAlign = "center"; ctx.textBaseline = "bottom"; ctx.fillStyle = "#1d2320";
+    ctx.fillText("Temperatura (°C)", (M.l + W - M.r) / 2, H - 2);
+    ctx.save(); ctx.translate(20, (M.t + H - M.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textBaseline = "top"; ctx.fillText("Humedad (%)", 0, 0); ctx.restore();
+    // puntos
+    datos.forEach(function (d) {
+      var pred = R.calcular(red, d.t, d.h).clase;
+      ctx.beginPath(); ctx.arc(aX(d.t), aY(d.h), 9, 0, Math.PI * 2);
+      ctx.fillStyle = COLORES[d.c]; ctx.fill();
+      ctx.lineWidth = pred === d.c ? 2.5 : 4; ctx.strokeStyle = pred === d.c ? "#ffffff" : "#111";
+      ctx.stroke();
+    });
+  }
+
+  function dibujarCurva() {
+    var cv = q("curva"), c2 = cv.getContext("2d"), w = cv.width, h = cv.height;
+    c2.fillStyle = "#0b1012"; c2.fillRect(0, 0, w, h);
+    if (historia.length < 2) return;
+    var max = Math.max.apply(null, historia), min = Math.min.apply(null, historia);
+    var rango = Math.max(max - min, 1e-6);
+    c2.strokeStyle = "#f2c230"; c2.lineWidth = 3; c2.beginPath();
+    historia.forEach(function (v, i) {
+      var x = 10 + i / (historia.length - 1) * (w - 20), y = h - 10 - (v - min) / rango * (h - 40);
+      if (i === 0) c2.moveTo(x, y); else c2.lineTo(x, y);
+    });
+    c2.stroke();
+    c2.fillStyle = "#8a9893"; c2.font = "22px IBM Plex Mono, monospace"; c2.textBaseline = "top";
+    c2.fillText("pérdida: de " + coma(max, 3) + " a " + coma(historia[historia.length - 1], 3), 12, 6);
+  }
+
+  function actualizarStats() {
+    q("st-pasos").textContent = pasos;
+    q("st-puntos").textContent = datos.length;
+    q("st-perdida").textContent = ultimo ? coma(ultimo.perdida, 3) : "-";
+    q("st-precision").textContent = ultimo ? Math.round(ultimo.precision * 100) + " %" : "-";
+    var info = datos.length + " puntos, " + pasos + " pasos" + (ultimo ? ", aciertos " + Math.round(ultimo.precision * 100) + " %" : "");
+    q("exportado").value = R.exportarC(red, info);
+  }
+
+  function evaluar() {
+    if (!datos.length) { ultimo = null; return; }
+    var perd = 0, ac = 0;
+    datos.forEach(function (d) { var c = R.calcular(red, d.t, d.h); perd += -Math.log(Math.max(c.p[d.c], 1e-9)); if (c.clase === d.c) ac++; });
+    ultimo = { perdida: perd / datos.length, precision: ac / datos.length };
+  }
+
+  function mostrarCuenta(T, Hu) {
+    var c = R.calcular(red, T, Hu);
+    function l(a, d) { return a.map(function (v) { return (v >= 0 ? " " : "") + coma(v, d); }).join("  "); }
+    q("cuenta").textContent =
+      "T = " + coma(T, 1) + " °C   H = " + coma(Hu, 0) + " %\n" +
+      "entradas x : " + l(c.x, 2) + "\n" +
+      "ocultas h  : " + l(c.h, 2) + "\n" +
+      "puntajes z : " + l(c.z, 2) + "\n" +
+      "softmax p  : " + l(c.p, 3) + "\n" +
+      "decisión   : " + R.CLASES[c.clase];
+  }
+
+  function bucle() {
+    if (!entrenando) return;
+    for (var i = 0; i < 25; i++) { ultimo = R.entrenarPaso(red, datos, 0.8); pasos++; }
+    if (pasos % 50 === 0) historia.push(ultimo.perdida);
+    dibujarPlano(); dibujarCurva(); actualizarStats();
+    if (pasos >= 3000 || ultimo.perdida < 0.02) { entrenando = false; q("btn-entrenar").textContent = "Entrenar"; return; }
+    requestAnimationFrame(bucle);
+  }
+
+  q("btn-entrenar").addEventListener("click", function () {
+    if (!datos.length) return;
+    entrenando = !entrenando;
+    q("btn-entrenar").textContent = entrenando ? "Pausar" : "Entrenar";
+    if (entrenando) { if (pasos >= 3000) { pasos = 0; historia = []; } requestAnimationFrame(bucle); }
+  });
+  q("btn-reiniciar").addEventListener("click", function () {
+    semilla++; red = R.nuevaRed(semilla); pasos = 0; historia = []; entrenando = false;
+    q("btn-entrenar").textContent = "Entrenar"; evaluar(); dibujarPlano(); dibujarCurva(); actualizarStats();
+  });
+  q("btn-ejemplo").addEventListener("click", function () { datos = R.datosDeEjemplo(); evaluar(); dibujarPlano(); actualizarStats(); });
+  q("btn-borrar").addEventListener("click", function () { datos = []; evaluar(); dibujarPlano(); actualizarStats(); });
+
+  document.querySelectorAll(".clase-chip").forEach(function (b) {
+    b.addEventListener("click", function () {
+      document.querySelectorAll(".clase-chip").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      claseElegida = +b.dataset.c;
+    });
+  });
+
+  function posicion(ev) {
+    var r = plano.getBoundingClientRect();
+    return { x: (ev.clientX - r.left) / r.width * W, y: (ev.clientY - r.top) / r.height * H };
+  }
+  plano.addEventListener("click", function (ev) {
+    var p = posicion(ev);
+    if (p.x < M.l || p.x > W - M.r || p.y < M.t || p.y > H - M.b) return;
+    for (var i = 0; i < datos.length; i++) {
+      var dx = aX(datos[i].t) - p.x, dy = aY(datos[i].h) - p.y;
+      if (dx * dx + dy * dy < 14 * 14) { datos.splice(i, 1); evaluar(); dibujarPlano(); actualizarStats(); return; }
+    }
+    datos.push({ t: Math.round(deX(p.x) * 2) / 2, h: Math.round(deY(p.y)), c: claseElegida });
+    evaluar(); dibujarPlano(); actualizarStats();
+  });
+  plano.addEventListener("mousemove", function (ev) {
+    var p = posicion(ev);
+    if (p.x < M.l || p.x > W - M.r || p.y < M.t || p.y > H - M.b) return;
+    mostrarCuenta(deX(p.x), deY(p.y));
+    q("hover").textContent = "En " + coma(deX(p.x), 1) + " °C y " + coma(deY(p.y), 0) + " % la red dice: " + R.CLASES[R.calcular(red, deX(p.x), deY(p.y)).clase];
+  });
+  q("aula-agregar").addEventListener("click", function () {
+    var t = parseFloat(q("aula-t").value), h = parseFloat(q("aula-h").value);
+    if (isNaN(t) || isNaN(h)) return;
+    datos.push({ t: t, h: h, c: claseElegida }); evaluar(); dibujarPlano(); actualizarStats();
+  });
+  q("copiar-pesos").addEventListener("click", function () {
+    var btn = q("copiar-pesos"), area = q("exportado");
+    function listo(m) { btn.textContent = m; setTimeout(function () { btn.textContent = "Copiar pesos_red.h"; }, 1800); }
+    try { navigator.clipboard.writeText(area.value).then(function () { listo("Copiado"); }, function () { area.select(); listo("Seleccionado: Ctrl+C"); }); }
+    catch (e) { area.select(); listo("Seleccionado: Ctrl+C"); }
+  });
+
+  // Estado inicial: la red ya viene entrenada con los datos de ejemplo (igual que la placa)
+  for (var n = 0; n < 3000; n++) { ultimo = R.entrenarPaso(red, datos, 0.8); pasos++; if (pasos % 50 === 0) historia.push(ultimo.perdida); }
+  dibujarPlano(); dibujarCurva(); actualizarStats(); mostrarCuenta(27, 72);
+
+  /* ================= 4. ESQUEMA ================= */
+  if (window.Esquemas) Esquemas.dibujar("ia", q("esq-ia"));
+
+  /* ================= Copiar código ================= */
+  document.querySelectorAll(".copiar").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var texto = q(btn.dataset.objetivo).textContent;
+      function listo(msg) { btn.textContent = msg; setTimeout(function () { btn.textContent = "Copiar código"; }, 1800); }
+      function seleccionar() {
+        var r = document.createRange(); r.selectNodeContents(q(btn.dataset.objetivo));
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        listo("Seleccionado: Ctrl+C");
+      }
+      try { navigator.clipboard.writeText(texto).then(function () { listo("Copiado"); }, seleccionar); }
+      catch (e) { seleccionar(); }
+    });
+  });
+})();
+</script>
+</body>
+</html>

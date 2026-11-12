@@ -30,7 +30,7 @@ El curso suma una capa de comunicación por etapa, hasta llegar a un sistema con
 | 2 | Placas que hablan entre sí: ESP-NOW | [Clase 2](clases/02-espnow-chat-led/) |
 | 3 | Placas que hablan con la computadora: MQTT y Node-RED | próximamente |
 | 4 | Salida a internet: Adafruit IO | próximamente |
-| 5 | La computadora ve y escucha: OpenCV, MediaPipe, TensorFlow | próximamente |
+| 5 | Inteligencia artificial: IA local en la netbook y red neuronal en la placa; después, OpenCV y MediaPipe | [Clase 3](clases/03-ia-local-red-neuronal/) |
 | 6 | Proyecto final: estación agro conectada | próximamente |
 
 ## Clases
@@ -39,6 +39,7 @@ El curso suma una capa de comunicación por etapa, hasta llegar a un sistema con
 | --- | --- | --- |
 | 01 | [ESP8266: PWM y ADC con LED RGB](clases/01-pwm-adc-led-rgb/) | PWM, tensión promedio, ADC (entrada A0), LED RGB, ánodo y cátodo común, punto de acceso WiFi y servidor web |
 | 02 | [ESP8266: ESP-NOW, chat y LED remoto](clases/02-espnow-chat-led/) | ESP-NOW entre dos placas, red WiFi propia con página web, chat entre celulares, LED propio y remoto, MAC, EEPROM, alcance y tiempo de ida y vuelta |
+| 03 | [IA local: un modelo de lenguaje en la netbook y una red neuronal en la placa](clases/03-ia-local-red-neuronal/) | DeepSeek y Qwen sin internet (KoboldCpp o LM Studio), memoria y velocidad de un modelo, red neuronal de 27 parámetros entrenada en el navegador y ejecutada en el ESP8266 con DHT11 y LED RGB |
 
 ## Estructura del repositorio
 
