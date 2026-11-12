@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrenador de red neuronal con cámara</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ===========================================================================
+   LABORATORIO DE BACKPROPAGATION CON CÁMARA
+   Archivo único, sin dependencias externas de JavaScript.
+   Red: 196 entradas (14x14 grises) -> 8 ocultas (ReLU) -> N clases (softmax)
+   Entrenamiento: descenso por gradiente estocástico con momento, escrito a mano.
+   =========================================================================== */
+
+:root{
+  --fondo:#101418;
+  --panel:#171d23;
+  --panel-2:#1e262e;
+  --borde:#2a343d;
+  --borde-vivo:#3a4752;
+  --texto:#dfe6ec;
+  --texto-sec:#8b9aa8;
+  --texto-ten:#5d6b78;
+
+  --captura:#22b8cf;
+  --entrena:#f0a020;
+  --reconoce:#36c98a;
+  --positivo:#f05454;
+  --negativo:#3d8bfd;
+  --alerta:#f0a020;
+
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --cuerpo:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--fondo);
+  color:var(--texto);
+  font-family:var(--cuerpo);
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+
+.contenedor{max-width:1180px;margin:0 auto;padding:0 16px 64px}
+
+/* ---------- encabezado ---------- */
+header.cabecera{
+  border-bottom:1px solid var(--borde);
+  padding:26px 0 18px;
+  margin-bottom:22px;
+}
+.sobretitulo{
+  font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--texto-ten);margin:0 0 8px;
+}
+h1{
+  font-family:var(--display);font-weight:700;font-size:clamp(1.6rem,4.5vw,2.3rem);
+  line-height:1.05;margin:0 0 10px;letter-spacing:-.01em;
+}
+.bajada{color:var(--texto-sec);margin:0;max-width:62ch}
+
+/* ---------- pasos ---------- */
+.pasos{
+  display:flex;gap:6px;flex-wrap:wrap;margin:20px 0 24px;
+}
+.paso-btn{
+  flex:1 1 200px;min-width:160px;
+  display:flex;align-items:center;gap:10px;
+  background:var(--panel);border:1px solid var(--borde);border-radius:8px;
+  padding:10px 12px;cursor:pointer;text-align:left;
+  color:var(--texto-sec);font-family:var(--cuerpo);font-size:14px;
+  transition:border-color .15s,background .15s;
+}
+.paso-btn:hover{background:var(--panel-2)}
+.paso-btn[aria-selected="true"]{background:var(--panel-2);color:var(--texto)}
+.paso-btn .num{
+  flex:0 0 auto;width:24px;height:24px;border-radius:50%;
+  display:grid;place-items:center;
+  font-family:var(--mono);font-size:12px;
+  background:var(--borde);color:var(--texto-ten);
+}
+.paso-btn[aria-selected="true"] .num{color:#101418}
+.paso-btn:focus-visible{outline:2px solid var(--captura);outline-offset:2px}
+
+/* ---------- secciones ---------- */
+section.pantalla[hidden]{display:none}
+.franja{
+  display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;
+  border-bottom:1px solid var(--borde);padding-bottom:10px;margin-bottom:18px;
+}
+.franja h2{font-family:var(--display);font-size:1.25rem;font-weight:600;margin:0}
+.franja .nota{color:var(--texto-ten);font-size:13px;font-family:var(--mono)}
+
+.rejilla{display:grid;gap:16px}
+@media(min-width:860px){
+  .rejilla.dos{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .rejilla.video{grid-template-columns:minmax(0,360px) minmax(0,1fr)}
+}
+
+.tarjeta{
+  background:var(--panel);border:1px solid var(--borde);border-radius:10px;
+  padding:14px;min-width:0;
+}
+.tarjeta h3{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--texto-ten);margin:0 0 10px;font-weight:500;
+}
+
+/* ---------- vídeo y lienzos ---------- */
+.marco-video{
+  position:relative;background:#000;border-radius:8px;overflow:hidden;
+  aspect-ratio:4/3;display:grid;place-items:center;
+}
+.marco-video video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.marco-video .mira{
+  position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);
+  width:62%;aspect-ratio:1;border:2px dashed rgba(34,184,207,.8);border-radius:6px;
+  pointer-events:none;
+}
+.marco-video .aviso{
+  position:absolute;inset:0;display:grid;place-items:center;padding:20px;
+  text-align:center;color:var(--texto-sec);font-size:14px;background:#0b0e11;
+}
+.marco-video .aviso strong{color:var(--texto);display:block;margin-bottom:6px}
+
+canvas.pixelado{image-rendering:pixelated;image-rendering:crisp-edges}
+
+.previa{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.previa canvas{
+  width:112px;height:112px;border:1px solid var(--borde-vivo);border-radius:6px;background:#000;
+}
+.previa .leyenda{font-size:13px;color:var(--texto-sec);min-width:0;flex:1 1 180px}
+
+/* ---------- clases ---------- */
+.lista-clases{display:flex;flex-direction:column;gap:8px}
+.clase{
+  display:flex;align-items:center;gap:10px;
+  background:var(--panel-2);border:1px solid var(--borde);border-radius:8px;padding:8px 10px;
+}
+.clase .punto{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.clase input.nombre{
+  flex:1 1 auto;min-width:0;background:transparent;border:0;color:var(--texto);
+  font-family:var(--cuerpo);font-size:15px;padding:2px 0;border-bottom:1px solid transparent;
+}
+.clase input.nombre:focus{outline:none;border-bottom-color:var(--borde-vivo)}
+.clase .cuenta{
+  font-family:var(--mono);font-size:12px;color:var(--texto-sec);
+  min-width:4.2rem;text-align:right;font-variant-numeric:tabular-nums;
+}
+.clase .capturar{
+  background:var(--captura);color:#06181c;border:0;border-radius:6px;
+  padding:7px 12px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;cursor:pointer;white-space:nowrap;
+}
+.clase .capturar:active{filter:brightness(1.25)}
+.clase .capturar:disabled{opacity:.3;cursor:not-allowed}
+.clase .quitar{
+  background:transparent;border:1px solid var(--borde-vivo);color:var(--texto-ten);
+  border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:15px;line-height:1;
+  flex:0 0 auto;
+}
+.clase .quitar:hover{color:var(--positivo);border-color:var(--positivo)}
+
+.tiras{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.tira{display:flex;align-items:center;gap:8px}
+.tira .etq{
+  font-family:var(--mono);font-size:11px;width:5.6rem;flex:0 0 auto;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tira .muestras{display:flex;gap:3px;overflow-x:auto;padding-bottom:2px;min-width:0}
+.tira .muestras canvas{
+  width:34px;height:34px;flex:0 0 auto;border-radius:3px;border:1px solid var(--borde);
+}
+
+/* ---------- botones ---------- */
+.botonera{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+button.accion{
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  border:0;border-radius:7px;padding:10px 15px;cursor:pointer;color:#0b0f12;
+  transition:filter .15s;
+}
+button.accion:hover:not(:disabled){filter:brightness(1.12)}
+button.accion:disabled{opacity:.32;cursor:not-allowed}
+button.accion.cian{background:var(--captura)}
+button.accion.ambar{background:var(--entrena)}
+button.accion.verde{background:var(--reconoce)}
+button.fantasma{
+  background:transparent;border:1px solid var(--borde-vivo);color:var(--texto-sec);
+  border-radius:7px;padding:9px 14px;cursor:pointer;
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+}
+button.fantasma:hover{color:var(--texto);border-color:var(--texto-ten)}
+button:focus-visible{outline:2px solid var(--captura);outline-offset:2px}
+
+/* ---------- controles ---------- */
+.control{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.control label{
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--texto-ten);width:7.5rem;flex:0 0 auto;
+}
+.control input[type=range]{flex:1 1 auto;min-width:0;accent-color:var(--entrena)}
+.control .valor{
+  font-family:var(--mono);font-size:12px;color:var(--entrena);
+  width:4.2rem;text-align:right;font-variant-numeric:tabular-nums;flex:0 0 auto;
+}
+
+/* ---------- métricas ---------- */
+.metricas{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:12px}
+.metrica .rotulo{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--texto-ten);
+}
+.metrica .cifra{
+  font-family:var(--mono);font-size:1.35rem;font-variant-numeric:tabular-nums;
+}
+
+/* ---------- sinapsis ---------- */
+.lienzo-sinapsis{width:100%;height:auto;display:block}
+.mapas{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.mapa{text-align:center}
+.mapa canvas{
+  width:100%;aspect-ratio:1;border:1px solid var(--borde);border-radius:4px;background:#000;
+}
+.mapa .rot{font-family:var(--mono);font-size:10px;color:var(--texto-ten);margin-top:3px}
+
+/* ---------- tablas numéricas ---------- */
+.tabla-num{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11.5px}
+.tabla-num th{
+  text-align:right;font-weight:400;color:var(--texto-ten);padding:3px 6px;
+  font-size:10.5px;letter-spacing:.06em;
+}
+.tabla-num td{
+  text-align:right;padding:3px 6px;font-variant-numeric:tabular-nums;
+  border-top:1px solid var(--borde);
+}
+.tabla-num td.etq{text-align:left;color:var(--texto-sec)}
+.desborde{overflow-x:auto}
+
+/* ---------- bloque de cálculo ---------- */
+.calculo{
+  background:#0b0e11;border:1px solid var(--borde);border-radius:8px;padding:12px;
+  font-family:var(--mono);font-size:12px;line-height:1.75;overflow-x:auto;
+}
+.calculo .com{color:var(--texto-ten)}
+.calculo .num{color:var(--texto)}
+.calculo .pos{color:var(--positivo)}
+.calculo .neg{color:var(--negativo)}
+.calculo .des{color:var(--entrena)}
+.calculo .ok{color:var(--reconoce)}
+.calculo .ln{display:block;white-space:pre}
+
+/* ---------- barras de probabilidad ---------- */
+.barras{display:flex;flex-direction:column;gap:7px}
+.barra-fila{display:flex;align-items:center;gap:8px}
+.barra-fila .nom{
+  font-size:14px;width:7.5rem;flex:0 0 auto;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.barra-fila .pista{
+  flex:1 1 auto;height:20px;background:var(--panel-2);border-radius:4px;overflow:hidden;min-width:0;
+}
+.barra-fila .relleno{height:100%;border-radius:4px;transition:width .12s linear}
+.barra-fila .pc{
+  font-family:var(--mono);font-size:12px;width:4.2rem;text-align:right;
+  font-variant-numeric:tabular-nums;flex:0 0 auto;
+}
+
+.veredicto{
+  margin-top:14px;padding:14px;border-radius:8px;text-align:center;
+  background:var(--panel-2);border:1px solid var(--borde);
+}
+.veredicto .et{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--texto-ten)}
+.veredicto .val{font-family:var(--display);font-size:1.7rem;font-weight:700;margin-top:2px}
+
+/* ---------- avisos ---------- */
+.aviso-caja{
+  border-left:3px solid var(--alerta);background:rgba(240,160,32,.07);
+  padding:10px 14px;border-radius:0 6px 6px 0;font-size:14px;color:var(--texto-sec);
+  margin-bottom:14px;
+}
+.aviso-caja strong{color:var(--texto)}
+.pie{
+  margin-top:34px;padding-top:16px;border-top:1px solid var(--borde);
+  font-family:var(--mono);font-size:11.5px;line-height:1.7;color:var(--texto-ten);
+}
+.oculto{display:none!important}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="contenedor">
+
+<header class="cabecera">
+  <p class="sobretitulo">Laboratorio de redes neuronales · 196 → 8 → N</p>
+  <h1>Entrenar una red neuronal con la cámara</h1>
+  <p class="bajada">
+    Poné un objeto delante de la cámara, decí qué es, y mirá cómo cambian los pesos de las
+    sinapsis con cada paso de retropropagación. Sin librerías: el descenso por gradiente está
+    escrito a mano y todos los números son los reales.
+  </p>
+</header>
+
+<div class="pasos" role="tablist">
+  <button class="paso-btn" role="tab" aria-selected="true" data-ir="0">
+    <span class="num" style="background:var(--captura)">1</span>
+    <span>Capturar ejemplos</span>
+  </button>
+  <button class="paso-btn" role="tab" aria-selected="false" data-ir="1">
+    <span class="num">2</span>
+    <span>Entrenar y ver sinapsis</span>
+  </button>
+  <button class="paso-btn" role="tab" aria-selected="false" data-ir="2">
+    <span class="num">3</span>
+    <span>Un paso en cámara lenta</span>
+  </button>
+  <button class="paso-btn" role="tab" aria-selected="false" data-ir="3">
+    <span class="num">4</span>
+    <span>Reconocer en vivo</span>
+  </button>
+</div>
+
+<!-- =====================================================================
+     PANTALLA 1 — CAPTURA
+     ===================================================================== -->
+<section class="pantalla" id="p0">
+  <div class="franja">
+    <h2>Capturar ejemplos</h2>
+    <span class="nota">cada foto se reduce a 14×14 = 196 números</span>
+  </div>
+
+  <div class="aviso-caja">
+    <strong>Para que funcione:</strong> encuadrá el objeto dentro del recuadro punteado y movelo un
+    poco mientras capturás (giralo, acercalo, cambialo de lugar). Si todas las fotos de una clase
+    salen idénticas, la red va a memorizar el fondo en lugar del objeto. Capturá también la clase
+    "fondo" con la mano fuera de cuadro: le enseña qué es <em>no</em> ver nada.
+  </div>
+
+  <div class="rejilla video">
+    <div class="tarjeta">
+      <h3>Cámara</h3>
+      <div class="marco-video" id="marcoVideo">
+        <video id="video" playsinline muted></video>
+        <div class="mira" id="mira" hidden></div>
+        <div class="aviso" id="avisoCam">
+          <div>
+            <strong>La cámara está apagada</strong>
+            Tocá "Encender cámara" y aceptá el permiso del navegador.
+          </div>
+        </div>
+      </div>
+      <div class="botonera">
+        <button class="accion cian" id="btnCam">Encender cámara</button>
+        <button class="fantasma" id="btnApagar" disabled>Apagar</button>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <h3>Lo que realmente ve la red</h3>
+      <div class="previa">
+        <canvas id="cvPreview" class="pixelado" width="14" height="14"></canvas>
+        <div class="leyenda">
+          Esto es la entrada: 14×14 píxeles en escala de grises, normalizados a media 0 y desvío 1.
+          La normalización es lo que hace que la red no se confunda si cambia la luz del aula.
+          <div style="margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--texto-ten)" id="statsPreview">—</div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:18px">Clases</h3>
+      <div class="lista-clases" id="listaClases"></div>
+      <div class="botonera">
+        <button class="fantasma" id="btnAddClase">+ Agregar clase</button>
+        <button class="fantasma" id="btnBorrarTodo">Borrar todas las muestras</button>
+      </div>
+      <p style="font-size:13px;color:var(--texto-ten);margin:10px 0 0">
+        Mantené apretado el botón de una clase para capturar en ráfaga. Apuntá a unas 25 muestras
+        por clase.
+      </p>
+    </div>
+  </div>
+
+  <div class="tarjeta" style="margin-top:16px">
+    <h3>Muestras guardadas</h3>
+    <div class="tiras" id="tiras"></div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     PANTALLA 2 — ENTRENAMIENTO
+     ===================================================================== -->
+<section class="pantalla" id="p1" hidden>
+  <div class="franja">
+    <h2>Entrenar y ver sinapsis</h2>
+    <span class="nota">descenso por gradiente estocástico con momento</span>
+  </div>
+
+  <div class="rejilla dos">
+    <div class="tarjeta">
+      <h3>Controles</h3>
+      <div class="control">
+        <label for="lr">Tasa aprend.</label>
+        <input type="range" id="lr" min="0.001" max="0.2" step="0.001" value="0.03">
+        <span class="valor" id="lrVal">0,030</span>
+      </div>
+      <div class="control">
+        <label for="momento">Momento</label>
+        <input type="range" id="momento" min="0" max="0.95" step="0.05" value="0.9">
+        <span class="valor" id="momentoVal">0,90</span>
+      </div>
+      <div class="control">
+        <label for="lote">Lote</label>
+        <input type="range" id="lote" min="1" max="32" step="1" value="8">
+        <span class="valor" id="loteVal">8</span>
+      </div>
+
+      <div class="botonera">
+        <button class="accion ambar" id="btnEntrenar">Entrenar</button>
+        <button class="fantasma" id="btnEpoca">1 época</button>
+        <button class="fantasma" id="btnReiniciar">Reiniciar pesos</button>
+      </div>
+
+      <div class="metricas" style="margin-top:16px">
+        <div class="metrica">
+          <div class="rotulo">Época</div>
+          <div class="cifra" id="mEpoca">0</div>
+        </div>
+        <div class="metrica">
+          <div class="rotulo">Pérdida</div>
+          <div class="cifra" id="mPerdida" style="color:var(--entrena)">—</div>
+        </div>
+        <div class="metrica">
+          <div class="rotulo">Aciertos</div>
+          <div class="cifra" id="mAcierto" style="color:var(--reconoce)">—</div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:14px">Pérdida por época</h3>
+      <canvas id="cvPerdida" style="width:100%;height:120px;display:block"></canvas>
+      <p style="font-size:12.5px;color:var(--texto-ten);margin:8px 0 0">
+        Los aciertos se miden sobre las mismas muestras con las que entrenás, así que el número es
+        optimista. La prueba de verdad es el paso 4, con el objeto en la mano.
+      </p>
+    </div>
+
+    <div class="tarjeta">
+      <h3>Sinapsis de la capa oculta a la salida (W₂)</h3>
+      <canvas id="cvSinapsis" class="lienzo-sinapsis"></canvas>
+      <p style="font-size:13px;color:var(--texto-sec);margin:10px 0 0">
+        Cada línea es un peso. El <span style="color:var(--positivo)">rojo</span> empuja a favor de
+        esa clase, el <span style="color:var(--negativo)">azul</span> en contra, y el grosor es
+        cuánto pesa. Mientras entrenás, mirá cómo unas líneas engordan y otras se desvanecen: eso
+        es la red decidiendo qué neurona oculta le sirve para cada clase.
+      </p>
+    </div>
+  </div>
+
+  <div class="tarjeta" style="margin-top:16px">
+    <h3>Qué aprendió a mirar cada neurona oculta (filas de W₁)</h3>
+    <div class="mapas" id="mapas"></div>
+    <p style="font-size:13px;color:var(--texto-sec);margin:12px 0 0">
+      Cada cuadro son los 196 pesos que entran a una neurona oculta, acomodados en la misma grilla
+      de 14×14 que la imagen. Al principio es ruido. Después de entrenar, suelen aparecer siluetas:
+      la neurona se enciende cuando hay claro donde tiene <span style="color:var(--positivo)">rojo</span>
+      y oscuro donde tiene <span style="color:var(--negativo)">azul</span>. Si reconocés la forma
+      del objeto en algún cuadro, la red aprendió el objeto. Si ves el borde de la mesa, aprendió
+      la mesa.
+    </p>
+  </div>
+</section>
+
+<!-- =====================================================================
+     PANTALLA 3 — PASO A PASO
+     ===================================================================== -->
+<section class="pantalla" id="p2" hidden>
+  <div class="franja">
+    <h2>Un paso en cámara lenta</h2>
+    <span class="nota">una sola muestra, todos los números</span>
+  </div>
+
+  <div class="aviso-caja">
+    Acá se toma <strong>una</strong> muestra al azar y se hace un único paso de entrenamiento,
+    mostrando cada cuenta. Es el mismo código que corre miles de veces en el paso 2.
+  </div>
+
+  <div class="botonera" style="margin-bottom:16px">
+    <button class="accion ambar" id="btnPaso">Dar un paso</button>
+    <span style="font-size:13px;color:var(--texto-ten)" id="estadoPaso">Necesitás muestras de al menos dos clases.</span>
+  </div>
+
+  <div id="detallePaso" class="oculto">
+    <div class="rejilla dos">
+      <div class="tarjeta">
+        <h3>1 · Hacia adelante</h3>
+        <div class="previa" style="margin-bottom:12px">
+          <canvas id="cvPaso" class="pixelado" width="14" height="14"></canvas>
+          <div class="leyenda">
+            Etiqueta verdadera:
+            <strong id="pasoEtiqueta" style="font-size:16px">—</strong>
+          </div>
+        </div>
+        <div class="calculo" id="calcAdelante"></div>
+      </div>
+
+      <div class="tarjeta">
+        <h3>2 · El error</h3>
+        <div class="calculo" id="calcError"></div>
+        <h3 style="margin-top:14px">3 · Gradiente de la última capa</h3>
+        <div class="calculo" id="calcGrad"></div>
+      </div>
+    </div>
+
+    <div class="rejilla dos" style="margin-top:16px">
+      <div class="tarjeta">
+        <h3>4 · El error retrocede a la capa oculta</h3>
+        <div class="calculo" id="calcAtras"></div>
+      </div>
+      <div class="tarjeta">
+        <h3>5 · Las sinapsis cambian</h3>
+        <div class="desborde">
+          <table class="tabla-num" id="tablaCambios"></table>
+        </div>
+        <p style="font-size:12.5px;color:var(--texto-ten);margin:10px 0 0">
+          Cambios en W₂ para la clase verdadera y la más votada. Es exactamente lo que verías
+          engordar o adelgazar en el dibujo de sinapsis del paso 2.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     PANTALLA 4 — RECONOCIMIENTO
+     ===================================================================== -->
+<section class="pantalla" id="p3" hidden>
+  <div class="franja">
+    <h2>Reconocer en vivo</h2>
+    <span class="nota">una pasada hacia adelante por cuadro</span>
+  </div>
+
+  <div class="rejilla video">
+    <div class="tarjeta">
+      <h3>Cámara</h3>
+      <div class="marco-video">
+        <video id="video2" playsinline muted></video>
+        <div class="mira"></div>
+      </div>
+      <div class="botonera">
+        <button class="accion verde" id="btnReconocer">Empezar a reconocer</button>
+      </div>
+    </div>
+
+    <div class="tarjeta">
+      <h3>Probabilidades</h3>
+      <div class="barras" id="barrasPred"></div>
+      <div class="veredicto">
+        <div class="et">Predicción</div>
+        <div class="val" id="veredicto">—</div>
+      </div>
+      <p style="font-size:13px;color:var(--texto-sec);margin:14px 0 0">
+        Probá algo que nunca le mostraste. La red igual va a dar una respuesta con porcentajes
+        altos: no sabe decir "no sé", solo reparte el 100 % entre las clases que conoce. Esa es una
+        de las limitaciones más importantes de un clasificador.
+      </p>
+    </div>
+  </div>
+
+  <div class="tarjeta" style="margin-top:16px">
+    <h3>Guardar o cargar el modelo entrenado</h3>
+    <div class="botonera" style="margin-top:0">
+      <button class="fantasma" id="btnGuardar">Descargar modelo</button>
+      <button class="fantasma" id="btnCargar">Cargar modelo</button>
+      <input type="file" id="archivoModelo" accept="application/json" class="oculto">
+      <span style="font-size:13px;color:var(--texto-ten)" id="estadoArchivo"></span>
+    </div>
+    <p style="font-size:13px;color:var(--texto-sec);margin:10px 0 0">
+      El archivo guarda los pesos y las muestras. Sirve para que entrenes una vez y repartas el
+      modelo entre varias netbooks.
+    </p>
+  </div>
+</section>
+
+<footer class="pie">
+  Arquitectura: 196 entradas (14×14 en grises) → 8 neuronas ocultas con ReLU → softmax sobre las
+  clases. Pérdida: entropía cruzada. Optimizador: SGD con momento, implementado a mano.<br>
+  Una red real de visión usa convoluciones y millones de parámetros, pero el mecanismo de
+  aprendizaje es este mismo: medir el error, derivarlo hacia atrás y restar el gradiente.
+</footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ===========================================================================
+   CONFIGURACIÓN
+   =========================================================================== */
+const LADO = 14;              // imagen reducida LADO x LADO
+const D = LADO * LADO;        // 196 entradas
+const H = 8;                  // neuronas ocultas
+const COLORES = ["#22b8cf", "#f0a020", "#36c98a", "#c678dd", "#f05454", "#5ec8f0"];
+
+/* ===========================================================================
+   ESTADO
+   =========================================================================== */
+const estado = {
+  clases: [
+    { nombre: "lápiz",  muestras: [] },
+    { nombre: "goma",   muestras: [] },
+    { nombre: "mano",   muestras: [] },
+    { nombre: "fondo",  muestras: [] }
+  ],
+  red: null,
+  epoca: 0,
+  historial: [],
+  entrenando: false,
+  reconociendo: false,
+  flujo: null
+};
+
+/* ===========================================================================
+   RED NEURONAL — todo escrito a mano
+   =========================================================================== */
+
+function gauss() {
+  // Box-Muller: número aleatorio con distribución normal estándar
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function crearRed(nClases) {
+  const esc1 = Math.sqrt(2 / D);   // inicialización He, adecuada para ReLU
+  const esc2 = Math.sqrt(1 / H);
+  const r = {
+    C: nClases,
+    W1: new Float32Array(H * D),
+    b1: new Float32Array(H),
+    W2: new Float32Array(nClases * H),
+    b2: new Float32Array(nClases),
+    vW1: new Float32Array(H * D),
+    vb1: new Float32Array(H),
+    vW2: new Float32Array(nClases * H),
+    vb2: new Float32Array(nClases)
+  };
+  for (let i = 0; i < r.W1.length; i++) r.W1[i] = gauss() * esc1;
+  for (let i = 0; i < r.W2.length; i++) r.W2[i] = gauss() * esc2;
+  return r;
+}
+
+function adelante(red, x) {
+  const z1 = new Float32Array(H);
+  const a1 = new Float32Array(H);
+  for (let h = 0; h < H; h++) {
+    let s = red.b1[h];
+    const base = h * D;
+    for (let d = 0; d < D; d++) s += red.W1[base + d] * x[d];
+    z1[h] = s;
+    a1[h] = s > 0 ? s : 0;              // ReLU
+  }
+
+  const z2 = new Float32Array(red.C);
+  for (let c = 0; c < red.C; c++) {
+    let s = red.b2[c];
+    const base = c * H;
+    for (let h = 0; h < H; h++) s += red.W2[base + h] * a1[h];
+    z2[c] = s;
+  }
+
+  // softmax estable
+  let max = -Infinity;
+  for (let c = 0; c < red.C; c++) if (z2[c] > max) max = z2[c];
+  const p = new Float32Array(red.C);
+  let suma = 0;
+  for (let c = 0; c < red.C; c++) { p[c] = Math.exp(z2[c] - max); suma += p[c]; }
+  for (let c = 0; c < red.C; c++) p[c] /= suma;
+
+  return { z1, a1, z2, p };
+}
+
+function gradientesCero(red) {
+  return {
+    gW1: new Float32Array(H * D),
+    gb1: new Float32Array(H),
+    gW2: new Float32Array(red.C * H),
+    gb2: new Float32Array(red.C)
+  };
+}
+
+// Acumula el gradiente de una muestra. Devuelve la pérdida y los deltas,
+// para que la pantalla 3 pueda mostrarlos.
+function atras(red, x, y, salida, g) {
+  const { z1, a1, p } = salida;
+  const perdida = -Math.log(Math.max(p[y], 1e-9));
+
+  // delta de salida: derivada de entropía cruzada + softmax = p - onehot(y)
+  const d2 = new Float32Array(red.C);
+  for (let c = 0; c < red.C; c++) d2[c] = p[c] - (c === y ? 1 : 0);
+
+  for (let c = 0; c < red.C; c++) {
+    const base = c * H;
+    for (let h = 0; h < H; h++) g.gW2[base + h] += d2[c] * a1[h];
+    g.gb2[c] += d2[c];
+  }
+
+  // el error retrocede a la capa oculta, filtrado por la derivada de ReLU
+  const d1 = new Float32Array(H);
+  for (let h = 0; h < H; h++) {
+    let s = 0;
+    for (let c = 0; c < red.C; c++) s += red.W2[c * H + h] * d2[c];
+    d1[h] = z1[h] > 0 ? s : 0;
+  }
+
+  for (let h = 0; h < H; h++) {
+    const base = h * D;
+    for (let d = 0; d < D; d++) g.gW1[base + d] += d1[h] * x[d];
+    g.gb1[h] += d1[h];
+  }
+
+  return { perdida, d2, d1 };
+}
+
+function aplicar(red, g, n, lr, mom) {
+  const esc = 1 / n;
+  for (let i = 0; i < red.W1.length; i++) {
+    red.vW1[i] = mom * red.vW1[i] - lr * g.gW1[i] * esc;
+    red.W1[i] += red.vW1[i];
+  }
+  for (let i = 0; i < red.b1.length; i++) {
+    red.vb1[i] = mom * red.vb1[i] - lr * g.gb1[i] * esc;
+    red.b1[i] += red.vb1[i];
+  }
+  for (let i = 0; i < red.W2.length; i++) {
+    red.vW2[i] = mom * red.vW2[i] - lr * g.gW2[i] * esc;
+    red.W2[i] += red.vW2[i];
+  }
+  for (let i = 0; i < red.b2.length; i++) {
+    red.vb2[i] = mom * red.vb2[i] - lr * g.gb2[i] * esc;
+    red.b2[i] += red.vb2[i];
+  }
+}
+
+/* ===========================================================================
+   CÁMARA Y PREPROCESO
+   =========================================================================== */
+
+const video = document.getElementById("video");
+const video2 = document.getElementById("video2");
+const cvTrabajo = document.createElement("canvas");
+cvTrabajo.width = LADO; cvTrabajo.height = LADO;
+const ctxTrabajo = cvTrabajo.getContext("2d", { willReadFrequently: true });
+
+async function encenderCamara() {
+  try {
+    const flujo = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
+      audio: false
+    });
+    estado.flujo = flujo;
+    video.srcObject = flujo;
+    video2.srcObject = flujo;
+    await video.play();
+    await video2.play();
+    document.getElementById("avisoCam").hidden = true;
+    document.getElementById("mira").hidden = false;
+    document.getElementById("btnCam").disabled = true;
+    document.getElementById("btnApagar").disabled = false;
+    habilitarCaptura(true);
+    buclePreview();
+  } catch (e) {
+    const aviso = document.getElementById("avisoCam");
+    aviso.hidden = false;
+    let motivo = "El navegador rechazó el acceso.";
+    if (e && e.name === "NotAllowedError") motivo = "Alguien rechazó el permiso. Abrí el candado en la barra de direcciones y permití la cámara.";
+    else if (e && e.name === "NotFoundError") motivo = "No se encontró ninguna cámara conectada.";
+    else if (!window.isSecureContext) motivo = "La página no está en un origen seguro. Serví el archivo por https:// o por http://localhost, no abriéndolo con doble clic.";
+    aviso.innerHTML = '<div><strong>No se pudo abrir la cámara</strong>' + motivo + '</div>';
+  }
+}
+
+function apagarCamara() {
+  if (estado.flujo) estado.flujo.getTracks().forEach(t => t.stop());
+  estado.flujo = null;
+  estado.reconociendo = false;
+  document.getElementById("avisoCam").hidden = false;
+  document.getElementById("mira").hidden = true;
+  document.getElementById("btnCam").disabled = false;
+  document.getElementById("btnApagar").disabled = true;
+  habilitarCaptura(false);
+}
+
+// Recorta el cuadrado central del vídeo, lo reduce a 14x14 y lo normaliza.
+function capturarVector() {
+  if (!estado.flujo || video.videoWidth === 0) return null;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const lado = Math.min(vw, vh) * 0.62;          // coincide con el recuadro punteado
+  const sx = (vw - lado) / 2, sy = (vh - lado) / 2;
+
+  ctxTrabajo.save();
+  ctxTrabajo.translate(LADO, 0);
+  ctxTrabajo.scale(-1, 1);                        // espejo, igual que la vista previa
+  ctxTrabajo.drawImage(video, sx, sy, lado, lado, 0, 0, LADO, LADO);
+  ctxTrabajo.restore();
+
+  const img = ctxTrabajo.getImageData(0, 0, LADO, LADO);
+  const x = new Float32Array(D);
+  for (let i = 0; i < D; i++) {
+    const r = img.data[i * 4], g = img.data[i * 4 + 1], b = img.data[i * 4 + 2];
+    x[i] = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  }
+
+  // normalización por imagen: media 0, desvío 1 (invarianza a iluminación)
+  let media = 0;
+  for (let i = 0; i < D; i++) media += x[i];
+  media /= D;
+  let varianza = 0;
+  for (let i = 0; i < D; i++) varianza += (x[i] - media) ** 2;
+  const desvio = Math.sqrt(varianza / D) || 1e-6;
+  for (let i = 0; i < D; i++) x[i] = (x[i] - media) / desvio;
+
+  return { x, media, desvio };
+}
+
+function dibujarVector(canvas, x) {
+  const ctx = canvas.getContext("2d");
+  const img = ctx.createImageData(LADO, LADO);
+  for (let i = 0; i < D; i++) {
+    const v = Math.max(0, Math.min(255, Math.round((x[i] * 60) + 128)));
+    img.data[i * 4] = v; img.data[i * 4 + 1] = v; img.data[i * 4 + 2] = v;
+    img.data[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+}
+
+function buclePreview() {
+  if (!estado.flujo) return;
+  const r = capturarVector();
+  if (r) {
+    dibujarVector(document.getElementById("cvPreview"), r.x);
+    document.getElementById("statsPreview").textContent =
+      "brillo medio " + r.media.toFixed(3).replace(".", ",") +
+      " · contraste " + r.desvio.toFixed(3).replace(".", ",");
+  }
+  requestAnimationFrame(buclePreview);
+}
+
+/* ===========================================================================
+   INTERFAZ — CLASES Y CAPTURA
+   =========================================================================== */
+
+function habilitarCaptura(on) {
+  document.querySelectorAll(".clase .capturar").forEach(b => { b.disabled = !on; });
+}
+
+function pintarClases() {
+  const cont = document.getElementById("listaClases");
+  cont.innerHTML = "";
+  estado.clases.forEach((cl, i) => {
+    const fila = document.createElement("div");
+    fila.className = "clase";
+
+    const punto = document.createElement("span");
+    punto.className = "punto";
+    punto.style.background = COLORES[i % COLORES.length];
+
+    const nom = document.createElement("input");
+    nom.className = "nombre";
+    nom.type = "text";
+    nom.value = cl.nombre;
+    nom.setAttribute("aria-label", "Nombre de la clase " + (i + 1));
+    nom.addEventListener("input", () => {
+      cl.nombre = nom.value || "clase " + (i + 1);
+      pintarTiras(); pintarBarras(); dibujarSinapsis();
+    });
+
+    const cuenta = document.createElement("span");
+    cuenta.className = "cuenta";
+    cuenta.textContent = cl.muestras.length + " fotos";
+
+    const cap = document.createElement("button");
+    cap.className = "capturar";
+    cap.textContent = "Capturar";
+    cap.disabled = !estado.flujo;
+
+    let timer = null;
+    const tomar = () => {
+      const r = capturarVector();
+      if (!r) return;
+      cl.muestras.push(r.x);
+      cuenta.textContent = cl.muestras.length + " fotos";
+      pintarTiras();
+      actualizarEstadoPaso();
+    };
+    const arrancar = (ev) => {
+      ev.preventDefault();
+      tomar();
+      timer = setInterval(tomar, 110);
+    };
+    const frenar = () => { if (timer) { clearInterval(timer); timer = null; } };
+    cap.addEventListener("pointerdown", arrancar);
+    cap.addEventListener("pointerup", frenar);
+    cap.addEventListener("pointerleave", frenar);
+    cap.addEventListener("pointercancel", frenar);
+
+    const quitar = document.createElement("button");
+    quitar.className = "quitar";
+    quitar.textContent = "×";
+    quitar.title = "Eliminar esta clase";
+    quitar.setAttribute("aria-label", "Eliminar la clase " + cl.nombre);
+    quitar.addEventListener("click", () => {
+      if (estado.clases.length <= 2) return;
+      estado.clases.splice(i, 1);
+      estado.red = null;
+      reconstruir();
+    });
+
+    fila.append(punto, nom, cuenta, cap, quitar);
+    cont.appendChild(fila);
+  });
+}
+
+function pintarTiras() {
+  const cont = document.getElementById("tiras");
+  cont.innerHTML = "";
+  estado.clases.forEach((cl, i) => {
+    const fila = document.createElement("div");
+    fila.className = "tira";
+
+    const etq = document.createElement("span");
+    etq.className = "etq";
+    etq.style.color = COLORES[i % COLORES.length];
+    etq.textContent = cl.nombre;
+
+    const caja = document.createElement("div");
+    caja.className = "muestras";
+    const ultimas = cl.muestras.slice(-24);
+    if (ultimas.length === 0) {
+      const vacio = document.createElement("span");
+      vacio.style.cssText = "font-size:12px;color:var(--texto-ten)";
+      vacio.textContent = "sin muestras todavía";
+      caja.appendChild(vacio);
+    }
+    ultimas.forEach(x => {
+      const c = document.createElement("canvas");
+      c.width = LADO; c.height = LADO;
+      c.className = "pixelado";
+      dibujarVector(c, x);
+      caja.appendChild(c);
+    });
+
+    fila.append(etq, caja);
+    cont.appendChild(fila);
+  });
+}
+
+/* ===========================================================================
+   DIBUJO DE SINAPSIS Y MAPAS DE PESOS
+   =========================================================================== */
+
+function colorPeso(w, maxAbs) {
+  const t = Math.min(1, Math.abs(w) / (maxAbs || 1));
+  if (w >= 0) return "rgba(240,84,84," + (0.12 + t * 0.88).toFixed(3) + ")";
+  return "rgba(61,139,253," + (0.12 + t * 0.88).toFixed(3) + ")";
+}
+
+function dibujarSinapsis() {
+  const cv = document.getElementById("cvSinapsis");
+  const red = estado.red;
+  const C = estado.clases.length;
+  const ancho = cv.clientWidth || 400;
+  const alto = 300;
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = ancho * dpr; cv.height = alto * dpr;
+  cv.style.height = alto + "px";
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, ancho, alto);
+
+  const xIzq = 70, xDer = ancho - 90;
+  const yH = i => 34 + i * ((alto - 68) / (H - 1));
+  const yC = i => C === 1 ? alto / 2 : 50 + i * ((alto - 100) / (C - 1));
+
+  let maxAbs = 0.001;
+  if (red) for (let i = 0; i < red.W2.length; i++) maxAbs = Math.max(maxAbs, Math.abs(red.W2[i]));
+
+  // líneas = pesos
+  if (red) {
+    for (let c = 0; c < C; c++) {
+      for (let h = 0; h < H; h++) {
+        const w = red.W2[c * H + h];
+        ctx.beginPath();
+        ctx.moveTo(xIzq, yH(h));
+        ctx.lineTo(xDer, yC(c));
+        ctx.strokeStyle = colorPeso(w, maxAbs);
+        ctx.lineWidth = 0.4 + (Math.abs(w) / maxAbs) * 4.2;
+        ctx.stroke();
+      }
+    }
+  }
+
+  // neuronas ocultas
+  ctx.font = "10px 'IBM Plex Mono', monospace";
+  for (let h = 0; h < H; h++) {
+    ctx.beginPath();
+    ctx.arc(xIzq, yH(h), 7, 0, Math.PI * 2);
+    ctx.fillStyle = "#1e262e";
+    ctx.fill();
+    ctx.strokeStyle = "#3a4752";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.fillStyle = "#5d6b78";
+    ctx.textAlign = "right";
+    ctx.fillText("h" + h, xIzq - 13, yH(h) + 3.5);
+  }
+
+  // salidas
+  for (let c = 0; c < C; c++) {
+    ctx.beginPath();
+    ctx.arc(xDer, yC(c), 9, 0, Math.PI * 2);
+    ctx.fillStyle = COLORES[c % COLORES.length];
+    ctx.fill();
+    ctx.fillStyle = "#dfe6ec";
+    ctx.textAlign = "left";
+    ctx.font = "12px 'Source Sans 3', sans-serif";
+    const nom = estado.clases[c].nombre;
+    ctx.fillText(nom.length > 10 ? nom.slice(0, 9) + "…" : nom, xDer + 15, yC(c) + 4);
+    ctx.font = "10px 'IBM Plex Mono', monospace";
+  }
+
+  ctx.fillStyle = "#5d6b78";
+  ctx.textAlign = "center";
+  ctx.fillText("capa oculta", xIzq, 16);
+  ctx.fillText("salida", xDer, 16);
+}
+
+function dibujarMapas() {
+  const cont = document.getElementById("mapas");
+  if (cont.children.length !== H) {
+    cont.innerHTML = "";
+    for (let h = 0; h < H; h++) {
+      const caja = document.createElement("div");
+      caja.className = "mapa";
+      const c = document.createElement("canvas");
+      c.width = LADO; c.height = LADO;
+      c.className = "pixelado";
+      const rot = document.createElement("div");
+      rot.className = "rot";
+      rot.textContent = "h" + h;
+      caja.append(c, rot);
+      cont.appendChild(caja);
+    }
+  }
+  const red = estado.red;
+  for (let h = 0; h < H; h++) {
+    const cv = cont.children[h].querySelector("canvas");
+    const ctx = cv.getContext("2d");
+    const img = ctx.createImageData(LADO, LADO);
+    let maxAbs = 1e-6;
+    if (red) for (let d = 0; d < D; d++) maxAbs = Math.max(maxAbs, Math.abs(red.W1[h * D + d]));
+    for (let d = 0; d < D; d++) {
+      const w = red ? red.W1[h * D + d] : 0;
+      const t = Math.min(1, Math.abs(w) / maxAbs);
+      let r, g, b;
+      if (w >= 0) { r = 24 + t * 216; g = 30 + t * 54; b = 36 + t * 48; }
+      else        { r = 24 + t * 37;  g = 30 + t * 109; b = 36 + t * 217; }
+      img.data[d * 4] = r; img.data[d * 4 + 1] = g; img.data[d * 4 + 2] = b;
+      img.data[d * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+}
+
+function dibujarPerdida() {
+  const cv = document.getElementById("cvPerdida");
+  const dpr = window.devicePixelRatio || 1;
+  const ancho = cv.clientWidth || 400, alto = 120;
+  cv.width = ancho * dpr; cv.height = alto * dpr;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, ancho, alto);
+
+  const h = estado.historial;
+  ctx.strokeStyle = "#2a343d";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 3; i++) {
+    const y = 8 + i * ((alto - 20) / 3);
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(ancho, y); ctx.stroke();
+  }
+  if (h.length < 2) {
+    ctx.fillStyle = "#5d6b78";
+    ctx.font = "11px 'IBM Plex Mono', monospace";
+    ctx.textAlign = "center";
+    ctx.fillText("sin datos todavía", ancho / 2, alto / 2);
+    return;
+  }
+
+  const max = Math.max(...h), min = Math.min(...h);
+  const rango = (max - min) || 1;
+  ctx.beginPath();
+  h.forEach((v, i) => {
+    const x = (i / (h.length - 1)) * (ancho - 4) + 2;
+    const y = 8 + (1 - (v - min) / rango) * (alto - 20);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = "#f0a020";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.fillStyle = "#5d6b78";
+  ctx.font = "10px 'IBM Plex Mono', monospace";
+  ctx.textAlign = "left";
+  ctx.fillText(max.toFixed(2).replace(".", ","), 3, 12);
+  ctx.fillText(min.toFixed(2).replace(".", ","), 3, alto - 5);
+}
+
+/* ===========================================================================
+   ENTRENAMIENTO
+   =========================================================================== */
+
+function juntarMuestras() {
+  const lista = [];
+  estado.clases.forEach((cl, c) => cl.muestras.forEach(x => lista.push({ x, y: c })));
+  return lista;
+}
+
+function asegurarRed() {
+  if (!estado.red || estado.red.C !== estado.clases.length) {
+    estado.red = crearRed(estado.clases.length);
+    estado.epoca = 0;
+    estado.historial = [];
+  }
+}
+
+function unaEpoca(datos, lr, mom, lote) {
+  const red = estado.red;
+  const orden = datos.map((_, i) => i);
+  for (let i = orden.length - 1; i > 0; i--) {    // mezcla de Fisher-Yates
+    const j = Math.floor(Math.random() * (i + 1));
+    [orden[i], orden[j]] = [orden[j], orden[i]];
+  }
+
+  let perdidaTotal = 0, aciertos = 0;
+  for (let inicio = 0; inicio < orden.length; inicio += lote) {
+    const fin = Math.min(inicio + lote, orden.length);
+    const g = gradientesCero(red);
+    for (let k = inicio; k < fin; k++) {
+      const m = datos[orden[k]];
+      const s = adelante(red, m.x);
+      const r = atras(red, m.x, m.y, s, g);
+      perdidaTotal += r.perdida;
+      let mejor = 0;
+      for (let c = 1; c < red.C; c++) if (s.p[c] > s.p[mejor]) mejor = c;
+      if (mejor === m.y) aciertos++;
+    }
+    aplicar(red, g, fin - inicio, lr, mom);
+  }
+
+  estado.epoca++;
+  const perdidaMedia = perdidaTotal / datos.length;
+  estado.historial.push(perdidaMedia);
+  if (estado.historial.length > 400) estado.historial.shift();
+  return { perdida: perdidaMedia, acierto: aciertos / datos.length };
+}
+
+function refrescarMetricas(r) {
+  document.getElementById("mEpoca").textContent = estado.epoca;
+  if (r) {
+    document.getElementById("mPerdida").textContent = r.perdida.toFixed(3).replace(".", ",");
+    document.getElementById("mAcierto").textContent = (r.acierto * 100).toFixed(1).replace(".", ",") + " %";
+  }
+}
+
+function validarDatos() {
+  const conDatos = estado.clases.filter(c => c.muestras.length > 0).length;
+  if (conDatos < 2) {
+    alert("Necesitás muestras de al menos dos clases distintas antes de entrenar.");
+    return null;
+  }
+  return juntarMuestras();
+}
+
+function pasoEntrenamiento() {
+  if (!estado.entrenando) return;
+  const datos = juntarMuestras();
+  const lr = parseFloat(document.getElementById("lr").value);
+  const mom = parseFloat(document.getElementById("momento").value);
+  const lote = parseInt(document.getElementById("lote").value, 10);
+
+  let r = null;
+  for (let i = 0; i < 3; i++) r = unaEpoca(datos, lr, mom, lote);  // 3 épocas por cuadro
+
+  refrescarMetricas(r);
+  dibujarSinapsis();
+  dibujarMapas();
+  dibujarPerdida();
+  requestAnimationFrame(pasoEntrenamiento);
+}
+
+/* ===========================================================================
+   PANTALLA 3 — UN PASO DETALLADO
+   =========================================================================== */
+
+const n = (v, d = 3) => (v >= 0 ? " " : "") + v.toFixed(d).replace(".", ",");
+
+function actualizarEstadoPaso() {
+  const conDatos = estado.clases.filter(c => c.muestras.length > 0).length;
+  const est = document.getElementById("estadoPaso");
+  const btn = document.getElementById("btnPaso");
+  if (conDatos < 2) {
+    est.textContent = "Necesitás muestras de al menos dos clases.";
+    btn.disabled = true;
+  } else {
+    est.textContent = juntarMuestras().length + " muestras disponibles.";
+    btn.disabled = false;
+  }
+}
+
+function darUnPaso() {
+  const datos = validarDatos();
+  if (!datos) return;
+  asegurarRed();
+  const red = estado.red;
+  const lr = parseFloat(document.getElementById("lr").value);
+  const mom = parseFloat(document.getElementById("momento").value);
+
+  const m = datos[Math.floor(Math.random() * datos.length)];
+  const s = adelante(red, m.x);
+
+  // copia de W2 antes de actualizar, para mostrar el antes y el después
+  const antes = Float32Array.from(red.W2);
+
+  const g = gradientesCero(red);
+  const r = atras(red, m.x, m.y, s, g);
+
+  document.getElementById("detallePaso").classList.remove("oculto");
+  dibujarVector(document.getElementById("cvPaso"), m.x);
+  const etq = document.getElementById("pasoEtiqueta");
+  etq.textContent = estado.clases[m.y].nombre;
+  etq.style.color = COLORES[m.y % COLORES.length];
+
+  let mejor = 0;
+  for (let c = 1; c < red.C; c++) if (s.p[c] > s.p[mejor]) mejor = c;
+
+  // --- 1. hacia adelante ---
+  let html = '<span class="ln com">// activaciones de la capa oculta: a1 = max(0, W1·x + b1)</span>';
+  for (let h = 0; h < H; h++) {
+    const apagada = s.a1[h] === 0;
+    html += '<span class="ln">a1[' + h + '] = ' +
+      '<span class="' + (apagada ? "com" : "num") + '">' + n(s.a1[h]) + '</span>' +
+      (apagada ? '  <span class="com">← ReLU la apagó (z1 = ' + n(s.z1[h]) + ')</span>' : '') +
+      '</span>';
+  }
+  html += '<span class="ln com">\n// puntajes y probabilidades</span>';
+  for (let c = 0; c < red.C; c++) {
+    const barra = "█".repeat(Math.round(s.p[c] * 20));
+    html += '<span class="ln">' + estado.clases[c].nombre.padEnd(12).slice(0, 12) +
+      ' z2=' + n(s.z2[c]) + '  p=' +
+      '<span class="' + (c === m.y ? "ok" : "num") + '">' + (s.p[c] * 100).toFixed(1).replace(".", ",").padStart(5) + ' %</span> ' +
+      '<span class="' + (c === m.y ? "ok" : "com") + '">' + barra + '</span></span>';
+  }
+  document.getElementById("calcAdelante").innerHTML = html;
+
+  // --- 2. el error ---
+  html = '<span class="ln com">// pérdida = −log( p[clase verdadera] )</span>' +
+    '<span class="ln">L = −log(' + n(s.p[m.y]) + ') = <span class="des">' + n(r.perdida) + '</span></span>' +
+    '<span class="ln com">\n// delta de salida = p − onehot(verdadera)</span>';
+  for (let c = 0; c < red.C; c++) {
+    html += '<span class="ln">δ2[' + c + '] ' + estado.clases[c].nombre.padEnd(10).slice(0, 10) + ' = ' +
+      '<span class="' + (r.d2[c] >= 0 ? "pos" : "neg") + '">' + n(r.d2[c]) + '</span>' +
+      (c === m.y ? '  <span class="com">← negativo: subir este puntaje</span>' : '') +
+      '</span>';
+  }
+  document.getElementById("calcError").innerHTML = html;
+
+  // --- 3. gradiente de W2 ---
+  html = '<span class="ln com">// ∇W2[c][h] = δ2[c] · a1[h]   (clase verdadera: ' +
+    estado.clases[m.y].nombre + ')</span>';
+  for (let h = 0; h < H; h++) {
+    const gv = g.gW2[m.y * H + h];
+    html += '<span class="ln">∇W2[' + m.y + '][' + h + '] = ' + n(r.d2[m.y]) + ' × ' + n(s.a1[h]) +
+      ' = <span class="' + (gv >= 0 ? "pos" : "neg") + '">' + n(gv) + '</span></span>';
+  }
+  html += '<span class="ln com">\n// si a1[h] es 0, el gradiente es 0: esa sinapsis no cambia</span>';
+  document.getElementById("calcGrad").innerHTML = html;
+
+  // --- 4. retropropagación a la capa oculta ---
+  html = '<span class="ln com">// δ1[h] = ( Σc W2[c][h] · δ2[c] ) · ReLU\'(z1[h])</span>';
+  for (let h = 0; h < H; h++) {
+    let suma = 0;
+    for (let c = 0; c < red.C; c++) suma += antes[c * H + h] * r.d2[c];
+    const corte = s.z1[h] > 0;
+    html += '<span class="ln">δ1[' + h + '] = (' + n(suma) + ') × ' + (corte ? "1" : "0") +
+      ' = <span class="' + (r.d1[h] >= 0 ? "pos" : "neg") + '">' + n(r.d1[h]) + '</span>' +
+      (corte ? '' : '  <span class="com">← bloqueado por ReLU</span>') + '</span>';
+  }
+  let normaG = 0;
+  for (let i = 0; i < g.gW1.length; i++) normaG += g.gW1[i] * g.gW1[i];
+  html += '<span class="ln com">\n// de ahí salen los 1568 gradientes de W1</span>' +
+    '<span class="ln">‖∇W1‖ = <span class="des">' + n(Math.sqrt(normaG)) + '</span></span>';
+  document.getElementById("calcAtras").innerHTML = html;
+
+  // --- 5. aplicar y mostrar el cambio ---
+  aplicar(red, g, 1, lr, mom);
+
+  const filas = [m.y];
+  if (mejor !== m.y) filas.push(mejor);
+  let t = '<thead><tr><th class="etq" style="text-align:left">sinapsis</th><th>antes</th><th>después</th><th>cambio</th></tr></thead><tbody>';
+  filas.forEach(c => {
+    for (let h = 0; h < H; h++) {
+      const a = antes[c * H + h], b = red.W2[c * H + h], dif = b - a;
+      const col = dif >= 0 ? "var(--positivo)" : "var(--negativo)";
+      t += '<tr><td class="etq">h' + h + ' → ' + estado.clases[c].nombre + '</td>' +
+        '<td>' + n(a, 4) + '</td><td>' + n(b, 4) + '</td>' +
+        '<td style="color:' + col + '">' + (dif >= 0 ? "+" : "") + dif.toFixed(4).replace(".", ",") + '</td></tr>';
+    }
+  });
+  t += "</tbody>";
+  document.getElementById("tablaCambios").innerHTML = t;
+
+  estado.epoca++;
+  refrescarMetricas(null);
+  dibujarSinapsis();
+  dibujarMapas();
+}
+
+/* ===========================================================================
+   PANTALLA 4 — RECONOCIMIENTO
+   =========================================================================== */
+
+function pintarBarras(p) {
+  const cont = document.getElementById("barrasPred");
+  if (cont.children.length !== estado.clases.length) {
+    cont.innerHTML = "";
+    estado.clases.forEach((cl, i) => {
+      const fila = document.createElement("div");
+      fila.className = "barra-fila";
+      fila.innerHTML = '<span class="nom"></span>' +
+        '<span class="pista"><span class="relleno"></span></span>' +
+        '<span class="pc">0,0 %</span>';
+      fila.querySelector(".relleno").style.background = COLORES[i % COLORES.length];
+      cont.appendChild(fila);
+    });
+  }
+  estado.clases.forEach((cl, i) => {
+    const fila = cont.children[i];
+    fila.querySelector(".nom").textContent = cl.nombre;
+    const v = p ? p[i] : 0;
+    fila.querySelector(".relleno").style.width = (v * 100).toFixed(1) + "%";
+    fila.querySelector(".pc").textContent = (v * 100).toFixed(1).replace(".", ",") + " %";
+  });
+}
+
+function bucleReconocer() {
+  if (!estado.reconociendo) return;
+  const r = capturarVector();
+  if (r && estado.red && estado.red.C === estado.clases.length) {
+    const s = adelante(estado.red, r.x);
+    pintarBarras(s.p);
+    let mejor = 0;
+    for (let c = 1; c < estado.red.C; c++) if (s.p[c] > s.p[mejor]) mejor = c;
+    const v = document.getElementById("veredicto");
+    v.textContent = estado.clases[mejor].nombre;
+    v.style.color = COLORES[mejor % COLORES.length];
+  }
+  requestAnimationFrame(bucleReconocer);
+}
+
+/* ===========================================================================
+   GUARDAR Y CARGAR
+   =========================================================================== */
+
+function guardarModelo() {
+  if (!estado.red) { alert("Todavía no hay un modelo entrenado."); return; }
+  const datos = {
+    version: 1, lado: LADO, ocultas: H, epoca: estado.epoca,
+    clases: estado.clases.map(c => ({
+      nombre: c.nombre,
+      muestras: c.muestras.map(x => Array.from(x, v => Math.round(v * 1000) / 1000))
+    })),
+    W1: Array.from(estado.red.W1), b1: Array.from(estado.red.b1),
+    W2: Array.from(estado.red.W2), b2: Array.from(estado.red.b2)
+  };
+  const blob = new Blob([JSON.stringify(datos)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "modelo-camara.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  document.getElementById("estadoArchivo").textContent = "Modelo descargado.";
+}
+
+function cargarModelo(archivo) {
+  const lector = new FileReader();
+  lector.onload = () => {
+    try {
+      const d = JSON.parse(lector.result);
+      if (d.lado !== LADO || d.ocultas !== H) throw new Error("La arquitectura del archivo no coincide.");
+      estado.clases = d.clases.map(c => ({
+        nombre: c.nombre,
+        muestras: (c.muestras || []).map(a => Float32Array.from(a))
+      }));
+      estado.red = crearRed(estado.clases.length);
+      estado.red.W1.set(d.W1); estado.red.b1.set(d.b1);
+      estado.red.W2.set(d.W2); estado.red.b2.set(d.b2);
+      estado.epoca = d.epoca || 0;
+      estado.historial = [];
+      reconstruir();
+      document.getElementById("estadoArchivo").textContent = "Modelo cargado.";
+    } catch (e) {
+      document.getElementById("estadoArchivo").textContent = "No se pudo leer el archivo: " + e.message;
+    }
+  };
+  lector.readAsText(archivo);
+}
+
+/* ===========================================================================
+   NAVEGACIÓN Y ARRANQUE
+   =========================================================================== */
+
+function reconstruir() {
+  asegurarRed();
+  pintarClases();
+  pintarTiras();
+  pintarBarras();
+  dibujarSinapsis();
+  dibujarMapas();
+  dibujarPerdida();
+  refrescarMetricas(null);
+  actualizarEstadoPaso();
+  habilitarCaptura(!!estado.flujo);
+}
+
+function irA(i) {
+  document.querySelectorAll(".pantalla").forEach((s, k) => { s.hidden = k !== i; });
+  document.querySelectorAll(".paso-btn").forEach((b, k) => {
+    b.setAttribute("aria-selected", k === i ? "true" : "false");
+    const num = b.querySelector(".num");
+    const tonos = ["var(--captura)", "var(--entrena)", "var(--entrena)", "var(--reconoce)"];
+    num.style.background = k === i ? tonos[k] : "var(--borde)";
+  });
+  if (i === 1) { dibujarSinapsis(); dibujarMapas(); dibujarPerdida(); }
+  if (i !== 3) estado.reconociendo = false;
+}
+
+document.querySelectorAll(".paso-btn").forEach(b => {
+  b.addEventListener("click", () => irA(parseInt(b.dataset.ir, 10)));
+});
+
+document.getElementById("btnCam").addEventListener("click", encenderCamara);
+document.getElementById("btnApagar").addEventListener("click", apagarCamara);
+
+document.getElementById("btnAddClase").addEventListener("click", () => {
+  if (estado.clases.length >= COLORES.length) return;
+  estado.clases.push({ nombre: "clase " + (estado.clases.length + 1), muestras: [] });
+  estado.red = null;
+  reconstruir();
+});
+
+document.getElementById("btnBorrarTodo").addEventListener("click", () => {
+  estado.clases.forEach(c => { c.muestras = []; });
+  estado.red = null;
+  estado.epoca = 0;
+  estado.historial = [];
+  reconstruir();
+});
+
+["lr", "momento", "lote"].forEach(id => {
+  const el = document.getElementById(id);
+  const salida = document.getElementById(id + "Val");
+  const pintar = () => {
+    const v = parseFloat(el.value);
+    salida.textContent = id === "lote" ? v : v.toFixed(id === "lr" ? 3 : 2).replace(".", ",");
+  };
+  el.addEventListener("input", pintar);
+  pintar();
+});
+
+document.getElementById("btnEntrenar").addEventListener("click", (ev) => {
+  if (estado.entrenando) {
+    estado.entrenando = false;
+    ev.target.textContent = "Entrenar";
+    return;
+  }
+  if (!validarDatos()) return;
+  asegurarRed();
+  estado.entrenando = true;
+  ev.target.textContent = "Pausar";
+  pasoEntrenamiento();
+});
+
+document.getElementById("btnEpoca").addEventListener("click", () => {
+  const datos = validarDatos();
+  if (!datos) return;
+  asegurarRed();
+  const r = unaEpoca(
+    datos,
+    parseFloat(document.getElementById("lr").value),
+    parseFloat(document.getElementById("momento").value),
+    parseInt(document.getElementById("lote").value, 10)
+  );
+  refrescarMetricas(r);
+  dibujarSinapsis(); dibujarMapas(); dibujarPerdida();
+});
+
+document.getElementById("btnReiniciar").addEventListener("click", () => {
+  estado.entrenando = false;
+  document.getElementById("btnEntrenar").textContent = "Entrenar";
+  estado.red = crearRed(estado.clases.length);
+  estado.epoca = 0;
+  estado.historial = [];
+  refrescarMetricas(null);
+  dibujarSinapsis(); dibujarMapas(); dibujarPerdida();
+});
+
+document.getElementById("btnPaso").addEventListener("click", darUnPaso);
+
+document.getElementById("btnReconocer").addEventListener("click", (ev) => {
+  if (!estado.flujo) { alert("Encendé la cámara en el paso 1."); return; }
+  if (!estado.red) { alert("Entrená la red antes de reconocer."); return; }
+  estado.reconociendo = !estado.reconociendo;
+  ev.target.textContent = estado.reconociendo ? "Detener" : "Empezar a reconocer";
+  if (estado.reconociendo) bucleReconocer();
+});
+
+document.getElementById("btnGuardar").addEventListener("click", guardarModelo);
+document.getElementById("btnCargar").addEventListener("click", () => {
+  document.getElementById("archivoModelo").click();
+});
+document.getElementById("archivoModelo").addEventListener("change", (ev) => {
+  if (ev.target.files && ev.target.files[0]) cargarModelo(ev.target.files[0]);
+});
+
+window.addEventListener("resize", () => {
+  dibujarSinapsis();
+  dibujarPerdida();
+});
+
+reconstruir();
+</script>
+</body>
+</html>
